@@ -41,9 +41,9 @@ async def cpus(db_engine: 'aiopg._EngineContextManager'):
 
 
 async def cpu_clean(db_engine: 'aiopg._EngineContextManager'):
-    sql_clean = "delete from {} t where t.ts < (NOW() - INTERVAL '2 week')"
+    sql_clean = "delete from {} t where t.ts < (NOW() - INTERVAL '1 week')"
     async with db_engine.acquire() as conn:
-        for table in [PerCpu, Cpu, Memory, DiskIO, Tomcat]:
+        for table in [PerCpu, Cpu, Memory, DiskIO, Tomcat, Imap]:
             try:
                 await conn.execute(sql_clean.format(table.table.fullname))
             except Exception as exp:
@@ -168,6 +168,7 @@ async def imap(db_engine: 'aiopg._EngineContextManager'):
         data['procs'] += 1
         if proc._zombie:
             data['zombie'] += 1
+            continue
         with proc.oneshot():
             io_counters = proc.io_counters()
             data['disks_read_per_sec'] += (

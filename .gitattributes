@@ -1,0 +1,2 @@
+# Basic .gitattributes for a python repo.
+/static/vendors/* linguist-vendored

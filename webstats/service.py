@@ -3,6 +3,7 @@
 """
 import asyncio
 import logging
+import traceback
 
 import aiohttp_jinja2
 import jinja2
@@ -92,6 +93,7 @@ async def init_task(local_app):
             except Exception as excp:
                 _LOGER.exception(excp)
                 print(excp)
+                traceback.print_exc()
 
     def __collect_workers():
         for name, timeout in jobs.items():

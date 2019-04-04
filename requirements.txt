@@ -4,7 +4,7 @@ aiopg
 psutil
 psycopg2-binary
 sqlalchemy
-#aiohttp_debugtoolbar  # if debug
+aiohttp_debugtoolbar  # if debug
 aiohttp_jinja2
 gunicorn
-supervisor
+#supervisor
