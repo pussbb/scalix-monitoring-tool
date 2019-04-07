@@ -4,6 +4,7 @@
 import asyncio
 import logging
 import traceback
+from asyncio import CancelledError
 
 import aiohttp_jinja2
 import jinja2
@@ -90,6 +91,8 @@ async def init_task(local_app):
             try:
                 await func(local_app['db_engine'])
                 await asyncio.sleep(timeout)
+            except CancelledError as _:
+                return
             except Exception as excp:
                 _LOGER.exception(excp)
                 print(excp)

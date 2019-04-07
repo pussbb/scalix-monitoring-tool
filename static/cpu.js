@@ -37,6 +37,7 @@ $(function () {
             credits: {
                 enabled: false
             },
+
             series: []
         };
 

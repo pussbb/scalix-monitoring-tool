@@ -1,0 +1,39 @@
+<details class="container">
+    <summary>System information</summary>
+    <div class="row">
+        <div class="col bd-highlight">
+            <span class="badge badge-light">Platform:</span>
+                    {{platform}}
+        </div>
+        <div class="col bd-highlight">
+            <span class="badge badge-light">Architecture:</span>
+                    {{architecture}}
+        </div>
+        <div class="w-100"></div>
+        <div class="col bd-highlight"><span class="badge badge-light">Node:</span>{{node}}</div>
+        <div class="col bd-highlight"><span class="badge badge-light">System:</span>{{system}}</div>
+
+
+        <div class="w-100"></div>
+        <div class="col bd-highlight"><span class="badge badge-light">Release:</span>{{release}}</div>
+        <div class="col bd-highlight"><span class="badge badge-light">Version:</span>{{version}}</div>
+
+        <div class="w-100"></div>
+        <div class="col bd-highlight"><span class="badge badge-light">FQDN:</span>{{fqdn}}</div>
+        <div class="col bd-highlight">&nbsp;</div>
+
+        <div class="w-100"></div>
+        <div class="col bd-highlight">
+            <span class="badge badge-light">Jre version:</span><br/>
+                    {% if jre %}
+                    <code>{{jre}}</code>
+                    {% endif %}
+        </div>
+        <div class="col bd-highlight">
+            <span class="badge badge-light">Scalix Packages:</span><br/>
+             {% if packages %}
+                <code>{{packages.decode()}}</code>
+             {% endif %}
+        </div>
+    </div>
+</details>

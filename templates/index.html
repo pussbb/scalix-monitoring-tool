@@ -2,159 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Title</title>
-    <script src="{{static_base_url}}/static/vendor/highcharts/code/highcharts.js"></script>
-    <script src="{{static_base_url}}/static/vendor/highcharts/code/modules/boost.js"></script>
-    <script src="{{static_base_url}}/static/vendor/highcharts/code/modules/exporting.js"></script>
-    <script src="{{static_base_url}}/static/vendor/highcharts/code/modules/no-data-to-display.js"></script>
-    <script src="{{static_base_url}}/static/vendor/highcharts/code/themes/dark-unica.src.js"></script>
-    <script src="{{static_base_url}}/static/vendor/jquery-3.3.1.min.js"></script>
-    <script src="{{static_base_url}}/static/cpu.js"></script>
-    <script src="{{static_base_url}}/static/memory.js"></script>
-    <script src="{{static_base_url}}/static/disk_io.js"></script>
-    <script src="{{static_base_url}}/static/tomcat.js"></script>
-    <script src="{{static_base_url}}/static/main.js"></script>
-
-    <link href="{{static_base_url}}/static/vendor/bootstrap-4.3.1/css/bootstrap.min.css"
-          rel="stylesheet" crossorigin="anonymous"/>
-    <link href="{{static_base_url}}/static/vendor/bootstrap-4.3.1/css/bootstrap-grid.min.css"
-          rel="stylesheet" crossorigin="anonymous"/>
-    <style>
-        .bd-placeholder-img {
-            font-size: 1.125rem;
-            text-anchor: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        @media (min-width: 768px) {
-            .bd-placeholder-img-lg {
-                font-size: 3.5rem;
-            }
-        }
-    </style>
-    <link href="{{static_base_url}}/static/cover.css" rel="stylesheet" crossorigin="anonymous"/>
-
+    <title>Scalix Monitoring Tool - Dashboard</title>
+    {% include "styles.html" %}
 </head>
-<body>
-<div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-    <header class="masthead mb-auto">
-        <div class="inner">
-            <div class="d-flex flex-wrap bd-highlight ">
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Platform:</span> {{platform}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Architecture:</span> {{architecture}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Machine:</span>{{machine}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Node:</span>{{node}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">System:</span>{{system}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Release:</span>{{release}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Version:</span>{{version}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">FQDN:</span>{{fqdn}}</div>
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Jre version:</span>
-                    {% if jre %}
-                    <pre>{{jre}}</pre>
-                    {% endif %}
-                </div>
-                 {% if packages %}
-                <div class="p-2 bd-highlight"><span class="badge badge-light">Packages:</span>
+<body class="cover-container d-flex flex-column">
+<aside class="page-wrapper boder-radius-on toggled pinned chiller-theme"
+       style="height: 0;">
+    {% include "sidebar.html" %}
+</aside>
+<header class="masthead">
+    <article class="text-center">
+        {% include "partial/time-btns.html" %}
+    </article>
 
-                    <pre>{{packages.decode()}}</pre>
+</header>
 
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </header>
+<main role="main" class="inner cover container">
+    {% include "partial/sysinfo.html" %}
 
-    <main role="main" class="inner cover container">
-        <div class="d-flex justify-content-center">
-            <div id="time-shift" class="btn-group bd-highlight" role="group" aria-label="Basic example">
-              <button type="button" class="btn btn-primary active" data-shift-hours="1">1 hour</button>
-              <button type="button" class="btn btn-primary" data-shift-hours="3">3 hours</button>
-              <button type="button" class="btn btn-primary" data-shift-hours="6">6 hours</button>
-              <button type="button" class="btn btn-primary" data-shift-hours="12">12 hours</button>
-              <button type="button" class="btn btn-primary" data-shift-days="1">1 day</button>
-              <button type="button" class="btn btn-primary" data-shift-days="2">2 day</button>
-              <button type="button" class="btn btn-primary" data-shift-days="4">4 day</button>
-              <button type="button" class="btn btn-primary" data-shift-days="7">1 week</button>
-            </div>
-
-        </div>
-    <div class="d-flex flex-wrap flex-column bd-highlight">
-      <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight"
-               id="per_cpu_container"
-               data-calc-min-max="1"
-               data-label-prefix="CPU "
-               data-url="/per_cpu"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-      <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="cpu_container"
-               data-calc-min-max="1"
-               data-label-prefix="CPU "
-               data-url="/cpu"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-      <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="physical_mem_container"
-               data-label-prefix=""
-               data-url="/physical_mem"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-      <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="swap_mem_container"
-               data-label-prefix=""
-               data-url="/swap_mem"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-      <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="disk_io_container"
-               data-label-prefix=""
-               data-url="/disk_io"
-               data-hidden-on-start="read_count,write_count,read_time,write_time,busy_time"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-        <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="tomcat_utilization_container"
-               data-label-prefix=""
-               data-url="/tomcat_utilization"
-               data-hidden-on-start="read_count,write_count,read_time,write_time,busy_time"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-        <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="tomcat_other_container"
-               data-label-prefix=""
-               data-url="/tomcat_other_utilization"
-               data-hidden-on-start="read_count,write_count,read_time,write_time,busy_time"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-        <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="imap_utilization_container"
-               data-label-prefix=""
-               data-url="/imap_utilization"
-               data-hidden-on-start="read_count,write_count,read_time,write_time,busy_time"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-        <div class="p-2 flex-fill bd-highlight border">
-          <div class="bd-highlight" id="imap_other_container"
-               data-label-prefix=""
-               data-url="/imap_other_utilization"
-               data-hidden-on-start="read_count,write_count,read_time,write_time,busy_time"
-               style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-      </div>
-
+    <article class="border">
+        <div id="per_cpu_container"
+             class="graph-stats"
+             data-calc-min-max="1"
+             data-label-prefix="CPU "
+             data-url="/per_cpu"></div>
+    </article>
+</main>
+<footer class="mastfoot mt-auto text-center">
+    <div class="inner">
+        <p>Scalix Monitoring Tool</p>
     </div>
-    </main>
-
-    <footer class="mastfoot mt-auto">
-        <div class="inner">
-
-        </div>
-    </footer>
-</div>
+</footer>
+{% include "scripts.html" %}
 </body>
 </html>

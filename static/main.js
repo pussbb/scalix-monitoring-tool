@@ -4,7 +4,7 @@ function prepData(data) {
     })
 };
 
-const arrAvg = arr => arr.reduce((a,b) => a + b[1], 0) / arr.length;
+const arrAvg = arr => arr.reduce((a, b) => a + b[1], 0) / arr.length;
 const arrMin = arr => arr.reduce((min, p) => p[1] < min ? p[1] : min, 0);
 const arrMax = arr => arr.reduce((min, p) => p[1] > min ? p[1] : min, 0);
 
@@ -21,12 +21,15 @@ function bytes(bytes, label) {
 function requestData(e) {
     let chart = e.target;
     let $elem = $(chart.renderTo);
+
     function __get_chart_data(key) {
         return $elem.data(key);
     }
+
     function set_chart_data(key, value) {
         $elem.data(key, value);
     }
+
     $.ajax({
         url: __get_chart_data('url'),
         data: {
@@ -34,16 +37,16 @@ function requestData(e) {
             'fromHours': __get_chart_data('fromHours'),
             'fromDays': __get_chart_data('fromDays'),
             'fromWeek': __get_chart_data('fromWeek'),
-            'toMin':__get_chart_data('toMin'),
-            'toHours':__get_chart_data('toHours'),
-            'toDays':__get_chart_data('toDays'),
+            'toMin': __get_chart_data('toMin'),
+            'toHours': __get_chart_data('toHours'),
+            'toDays': __get_chart_data('toDays'),
             'from': __get_chart_data('from'),
             'to': __get_chart_data('to'),
         },
 
-        error: function() {
+        error: function () {
             set_chart_data('timeOutHdlr', setTimeout(function () {
-                requestData({target:chart});
+                requestData({target: chart});
             }, 60000));
         },
         success: function (data) {
@@ -52,7 +55,9 @@ function requestData(e) {
             let max = [];
             let labelPrefix = __get_chart_data('labelPrefix')
             let moreThenOne = Object.keys(data).length > 1;
-            let formatName = (key) => {return labelPrefix + (moreThenOne ? key : '')}
+            let formatName = (key) => {
+                return labelPrefix + (moreThenOne ? key : '')
+            }
 
             let visibleSeries = [];
             if (chart.series) {
@@ -64,19 +69,19 @@ function requestData(e) {
                         visibleSeries = visibleSeries.filter(item => !hiddenOnStart.includes(item));
                     }
                 }
-                 chart.series.forEach( item => {
-                     if (item.visible) {
-                         visibleSeries.push(item.name);
-                     }
-                     item.remove(true);
-                 });
-                 chart.legend.allItems.forEach( item => {
-                     if (item.visible) {
-                         visibleSeries.push(item.name);
-                     }
-                     item.remove(true)
-                 });
-                 chart.redraw();
+                chart.series.forEach(item => {
+                    if (item.visible) {
+                        visibleSeries.push(item.name);
+                    }
+                    item.remove(true);
+                });
+                chart.legend.allItems.forEach(item => {
+                    if (item.visible) {
+                        visibleSeries.push(item.name);
+                    }
+                    item.remove(true)
+                });
+                chart.redraw();
             }
 
             let calcMinMax = __get_chart_data('calcMinMax')
@@ -109,7 +114,7 @@ function requestData(e) {
             }
 
             if (calcMinMax) {
-                 chart.setTitle(null, {
+                chart.setTitle(null, {
                     text: `<b>Min</b>: ${Math.min(...min)} %, 
                         <b>Max:</b> ${Math.max(...max)} %, 
                         <b>Avg:</b>${Math.max(...avg)} `
@@ -118,7 +123,7 @@ function requestData(e) {
 
             chart.redraw();
             set_chart_data('timeOutHdlr', setTimeout(function () {
-                requestData({target:chart});
+                requestData({target: chart});
             }, 60000));
         },
         cache: false
@@ -128,29 +133,50 @@ function requestData(e) {
 function build_chart(containerId, chartOptions) {
     let chart = null;
     let $chartElem = $(containerId);
-    $(document).on('shiftDateChanged', function (e, fromDate, toDate, query) {
+    if (!$chartElem) {
+        return;
+    }
+    let clearChartTimeout = function () {
+        let timeOutHdlr = $chartElem.data('timeOutHdlr');
+        if (timeOutHdlr) {
+            clearTimeout(timeOutHdlr);
+        }
+    };
+
+    $chartElem.on('shiftDateChanged', function (e, fromDate, toDate, query) {
         let offset = $chartElem.data('timezoneOffset');
         if (offset) {
             // we now server timezone offset so we can use datetime
-            $chartElem.data('from', new Date(fromDate.getTime()+offset).getTime()/1000);
-            $chartElem.data('to', new Date(toDate.getTime()+offset).getTime()/1000);
+            $chartElem.data('from', new Date(fromDate.getTime() + offset).getTime() / 1000);
+            $chartElem.data('to', new Date(toDate.getTime() + offset).getTime() / 1000);
         } else {
             // reset
             $chartElem.data('from', null);
             $chartElem.data('to', null);
         }
-        $.each(query, (key, value) => $chartElem.data(key, value));
+        if (query) {
+            $.each(query, (key, value) => $chartElem.data(key, value));
+        }
         if (!chart) {
             chart = Highcharts.chart($chartElem[0].id, chartOptions);
         } else {
-            let timeOutHdlr = $chartElem.data('timeOutHdlr');
-            if (timeOutHdlr) {
-                clearTimeout(timeOutHdlr);
-            }
-            requestData({target:chart});
+            clearChartTimeout();
+            requestData({target: chart});
         }
     });
-};
+
+    $(document).on('destroy-' + $chartElem.attr('id'), function () {
+        clearChartTimeout();
+        if (chart) {
+            chart.destroy();
+        }
+        if ($chartElem) {
+            $chartElem.off('shiftDateChanged');
+            $(document).off('destroy-' + $chartElem.attr('id'));
+            $chartElem.parent().remove();
+        }
+    });
+}
 
 
 function shiftDate(hours, days, date) {
@@ -164,20 +190,97 @@ function shiftDate(hours, days, date) {
     return res;
 }
 
-$(function () {
-    Highcharts.setOptions({
-        time: {
-            useUTC: false
+Highcharts.setOptions({
+    time: {
+        useUTC: false
+    },
+    exporting: {
+
+        buttons: {
+            contextButton: {
+                x: -30
+            },
+            'closeBtn': {
+                id: 'closeBtn',
+                symbol: 'cross',
+                x: -5,
+                onclick: function (e) {
+                    let mainContainer = $(e.target).closest('.highcharts-container ').parent();
+                    $(document).trigger("destroy-" + mainContainer.attr('id'));
+                },
+                title: "Close"
+            }
         }
+    },
+});
+
+Highcharts.SVGRenderer.prototype.symbols.cross = function (x, y, w, h, d) {
+
+    // I want to be able to access the series data from here.
+    // Either the point data or the entire series' data array.
+    //if (d.v) {
+    //    console.debug("Point-specific data: " + d.v);
+    //}
+
+    // From here, you can imagine one can use the point-specific data to affect the symbol path.
+    // A good example would be to in case you want to build a series of custom wind barbs,
+    // in which the path of the barb will be based on the intensity and direction of each point
+    // ...
+
+    return ['M', x, y, 'L', x + w, y + h, 'M', x + w, y, 'L', x, y + h, 'z'];
+};
+
+if (Highcharts.VMLRenderer) {
+    Highcharts.VMLRenderer.prototype.symbols.cross = Highcharts.SVGRenderer.prototype.symbols.cross;
+}
+
+
+$(function () {
+    // Dropdown menu
+    $(".sidebar-dropdown > a").click(function () {
+        $(".sidebar-submenu").slideUp(200);
+        if ($(this).parent().hasClass("active")) {
+            $(".sidebar-dropdown").removeClass("active");
+            $(this).parent().removeClass("active");
+        } else {
+            $(".sidebar-dropdown").removeClass("active");
+            $(this).next(".sidebar-submenu").slideDown(200);
+            $(this).parent().addClass("active");
+        }
+
+    });
+
+    $("#sidebar").hover(
+        function () {
+            $(".page-wrapper").addClass("sidebar-hovered");
+        },
+        function () {
+            $(".page-wrapper").removeClass("sidebar-hovered");
+        }
+    );
+
+    //custom scroll bar is only used on desktop
+    if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        $(".sidebar-content").mCustomScrollbar({
+            axis: "y",
+            autoHideScrollbar: true,
+            scrollInertia: 300
+        });
+        $(".sidebar-content").addClass("desktop");
+    }
+    ;
+
+    $(document).on('click', 'details', function () {
+        $(this).toggleClass("border border-warning");
     });
 
     let timeShitBtns = $('#time-shift button')
-    timeShitBtns.on('click', function (e) {
+    timeShitBtns.on('click', function () {
         timeShitBtns.removeClass('active');
-        $( this ).addClass('active');
+        $(this).addClass('active');
         let date = new Date();
         let data = $(this).data();
-        $( document ).trigger(
+        $('.graph-stats').trigger(
             "shiftDateChanged",
             [
                 shiftDate(data['shiftHours'], data['shiftDays'], date),
