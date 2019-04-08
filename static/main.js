@@ -4,6 +4,20 @@ function prepData(data) {
     })
 };
 
+function getBoolean(value) {
+    switch (value) {
+        case true:
+        case "true":
+        case 1:
+        case "1":
+        case "on":
+        case "yes":
+            return true;
+        default:
+            return false;
+    }
+}
+
 const arrAvg = arr => arr.reduce((a, b) => a + b[1], 0) / arr.length;
 const arrMin = arr => arr.reduce((min, p) => p[1] < min ? p[1] : min, 0);
 const arrMax = arr => arr.reduce((min, p) => p[1] > min ? p[1] : min, 0);
@@ -165,16 +179,14 @@ function build_chart(containerId, chartOptions) {
         }
     });
 
-    $(document).on('destroy-' + $chartElem.attr('id'), function () {
+    $chartElem.on('destroy', function () {
         clearChartTimeout();
         if (chart) {
             chart.destroy();
         }
-        if ($chartElem) {
-            $chartElem.off('shiftDateChanged');
-            $(document).off('destroy-' + $chartElem.attr('id'));
-            $chartElem.parent().remove();
-        }
+        $chartElem.off('shiftDateChanged');
+        $chartElem.off('destroy');
+        $chartElem.parent().remove();
     });
 }
 
@@ -205,14 +217,16 @@ Highcharts.setOptions({
                 symbol: 'cross',
                 x: -5,
                 onclick: function (e) {
-                    let mainContainer = $(e.target).closest('.highcharts-container ').parent();
-                    $(document).trigger("destroy-" + mainContainer.attr('id'));
+                    let chartContainer = $(e.target).closest('.highcharts-container ');
+                    if (chartContainer && chartContainer.parent()) {
+                        chartContainer.parent().trigger("destroy");
+                    }
                 },
                 title: "Close"
             }
         }
     },
-});
+})
 
 Highcharts.SVGRenderer.prototype.symbols.cross = function (x, y, w, h, d) {
 
@@ -237,17 +251,20 @@ if (Highcharts.VMLRenderer) {
 
 $(function () {
     // Dropdown menu
-    $(".sidebar-dropdown > a").click(function () {
+    $(".sidebar-menu a").click(function () {
         $(".sidebar-submenu").slideUp(200);
-        if ($(this).parent().hasClass("active")) {
+        let $this = $(this);
+        if (getBoolean($this.data('clear'))) {
+            $('.graph-stats').trigger('destroy');
+        }
+        if ($this.parent().hasClass("active")) {
             $(".sidebar-dropdown").removeClass("active");
-            $(this).parent().removeClass("active");
+            $this.parent().removeClass("active");
         } else {
             $(".sidebar-dropdown").removeClass("active");
-            $(this).next(".sidebar-submenu").slideDown(200);
-            $(this).parent().addClass("active");
+            $this.next(".sidebar-submenu").slideDown(200);
+            $this.parent().addClass("active");
         }
-
     });
 
     $("#sidebar").hover(

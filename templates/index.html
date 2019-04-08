@@ -16,12 +16,14 @@
 <header class="masthead">
     <article class="text-center">
         {% include "partial/time-btns.html" %}
+        <footer style="text-align: left;">
+            {% include "partial/sysinfo.html" %}
+        </footer>
     </article>
-
 </header>
 
 <main role="main" class="inner cover container">
-    {% include "partial/sysinfo.html" %}
+
 
     <article class="border">
         <div id="per_cpu_container"
