@@ -156,7 +156,6 @@ function build_chart(containerId, chartOptions) {
             clearTimeout(timeOutHdlr);
         }
     };
-
     $chartElem.on('shiftDateChanged', function (e, fromDate, toDate, query) {
         let offset = $chartElem.data('timezoneOffset');
         if (offset) {
@@ -188,6 +187,7 @@ function build_chart(containerId, chartOptions) {
         $chartElem.off('destroy');
         $chartElem.parent().remove();
     });
+    return $chartElem;
 }
 
 
@@ -248,27 +248,221 @@ if (Highcharts.VMLRenderer) {
     Highcharts.VMLRenderer.prototype.symbols.cross = Highcharts.SVGRenderer.prototype.symbols.cross;
 }
 
+function memoryChartOption(title, shortTitle) {
+    let shortTitle_ = shortTitle || title;
+    return {
+        chart: {
+            type: 'spline',
+            animation: Highcharts.svg, // don't animate in old IE
+            marginRight: 10,
+            events: {load: requestData},
+            zoomType: 'x'
+        },
+        tooltip: {
+                formatter: function(){
+                   return bytes(this.y, true);
+                }
+            },
+        title: {
+            text: title
+        },
+        subtitle: {
+            text: document.ontouchstart === undefined ?
+                'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+        },
+        xAxis: {
+            type: 'datetime'
+        },
+        yAxis: {
+            min: 0,
+            title: {
+                text: shortTitle_
+            },
+            labels: {
+                formatter: function() {
+                    return bytes(this.value, true);
+                }
+            }
+        },
+        legend: {
+            enabled: true
+        },
+        plotOptions: {
+            turboThreshold: 50000,
+        },
+        credits: {
+            enabled: false
+        },
+        series: []
+    };
+}
+
+function simpleChartOptions(title, shortTitle) {
+    let shortTitle_ = shortTitle || title;
+    return {
+        chart: {
+            type: 'spline',
+            animation: Highcharts.svg, // don't animate in old IE
+            marginRight: 10,
+            events: {load: requestData},
+            zoomType: 'x'
+        },
+
+        title: {
+            text: title
+        },
+        subtitle: {
+            text: document.ontouchstart === undefined ?
+                'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+        },
+        xAxis: {
+            type: 'datetime'
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: {
+                text: shortTitle_
+            }
+        },
+        legend: {
+            enabled: true
+        },
+        plotOptions: {
+            turboThreshold: 50000,
+        },
+        credits: {
+            enabled: false
+        },
+
+        series: []
+    };
+}
+
+function timeRangeChange(graph) {
+    let el = graph || $('.graph-stats');
+    let shiftDateBtnGroup = $('#time-shift button.active')
+    let date = new Date();
+    let data = shiftDateBtnGroup.data();
+    el.trigger(
+        "shiftDateChanged",
+        [
+            shiftDate(data['shiftHours'], data['shiftDays'], date),
+            date,
+            {
+                'fromMin': data['shiftMin'] || null,
+                'fromHours': data['shiftHours'] || null,
+                'fromDays': data['shiftDays'] || null,
+                'fromWeek': data['shiftWeek'] || null,
+            }
+        ]
+    );
+}
 
 $(function () {
+
+    let mainContainer = $('main');
+    let addChart = function (id, data = {}) {
+        let $chartElem = $(`<div id="${id}" class="graph-stats bd-highlight border"></div>`);
+        $.each(data, (key, value) => $chartElem.data(key, value));
+        mainContainer.append($chartElem);
+        $chartElem.wrap('<article></article>');
+        return $chartElem;
+    };
+
+    let chartMap = {
+        '#cpu': {
+            container: 'cpu_container',
+            data: {
+                'calc-min-max': "1",
+                'label-prefix': "CPU ",
+                'url': "/cpu"
+            },
+            chart_options: simpleChartOptions('CPU usage')
+        },
+        '#per_cpu': {
+            container: 'per_cpu_container',
+            data: {
+                'calc-min-max': "1",
+                'label-prefix': "CPU ",
+                'url': "/per_cpu"
+            },
+            chart_options:  simpleChartOptions('CPU(per cpu) usage', 'CPU usage')
+        },
+        '#memory': {
+            container: 'physical_mem_container',
+            data: {
+                'label-prefix': "",
+                'url': "/physical_mem"
+            },
+            chart_options:  memoryChartOption('Memory usage')
+        },
+        '#swap_memory': {
+            container: 'swap_mem_container',
+            data: {
+                'label-prefix': "",
+                'url': "/swap_mem"
+            },
+            chart_options:  memoryChartOption('SWAP usage')
+        },
+        '#diskio':  {
+            container: 'disk_io_container',
+            data: {
+                'label-prefix': "",
+                'url': "/disk_io",
+                'hidden-on-start': "read_count,write_count,read_time,write_time,busy_time"
+            },
+            chart_options:  memoryChartOption('Disk IO')
+        }
+    };
+
     // Dropdown menu
-    $(".sidebar-menu a").click(function () {
-        $(".sidebar-submenu").slideUp(200);
+    $(".sidebar-menu").on('click', 'a', function () {
+        //$(".sidebar-submenu").slideUp(200);
         let $this = $(this);
-        if (getBoolean($this.data('clear'))) {
+        let $category = $this.closest('li.category');
+
+        $(".sidebar-submenu:visible").each((indx, elem) => {
+            if ($(elem).closest('li.category')[0] != $category[0]) {
+                $(elem).slideUp(200);
+            }
+        });
+        let $submenu = $(".sidebar-submenu", $this.parent());
+
+        if ($submenu.length > 0) {
+            $submenu.slideDown(200);
+            return false;
+        }
+        let isActiveCat = $category.hasClass('active');
+
+        if ($this.data('clear') !== undefined) {
+            if (getBoolean($this.data('clear'))) {
+                $('.graph-stats').trigger('destroy');
+            }
+        } else if (getBoolean($category.data('clear')) && !isActiveCat) {
             $('.graph-stats').trigger('destroy');
         }
-        if ($this.parent().hasClass("active")) {
+
+        if (!isActiveCat) {
             $(".sidebar-dropdown").removeClass("active");
-            $this.parent().removeClass("active");
-        } else {
-            $(".sidebar-dropdown").removeClass("active");
-            $this.next(".sidebar-submenu").slideDown(200);
-            $this.parent().addClass("active");
+            $category.addClass('active');
+
+        }
+
+        let data = chartMap[$this[0].hash];
+        if (data) {
+            let containerId = '#'+data.container;
+            if ($(containerId).length > 0) {
+                return;
+            }
+            addChart(data.container, data.data);
+            timeRangeChange(build_chart(containerId, data.chart_options));
         }
     });
 
     $("#sidebar").hover(
         function () {
+            $(".sidebar-submenu").slideUp(200);
             $(".page-wrapper").addClass("sidebar-hovered");
         },
         function () {
@@ -295,21 +489,9 @@ $(function () {
     timeShitBtns.on('click', function () {
         timeShitBtns.removeClass('active');
         $(this).addClass('active');
-        let date = new Date();
-        let data = $(this).data();
-        $('.graph-stats').trigger(
-            "shiftDateChanged",
-            [
-                shiftDate(data['shiftHours'], data['shiftDays'], date),
-                date,
-                {
-                    'fromMin': data['shiftMin'] || null,
-                    'fromHours': data['shiftHours'] || null,
-                    'fromDays': data['shiftDays'] || null,
-                    'fromWeek': data['shiftWeek'] || null,
-                }
-            ]
-        );
+        timeRangeChange();
     });
-    $('#time-shift button:first').click()
+
+    $('li a[href="#cpu"], li a[href="#memory"]').trigger('click');
+    $('#time-shift button:first').trigger('click');
 })

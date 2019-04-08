@@ -11,8 +11,8 @@
                 <li class="header-menu">
                     <span>General</span>
                 </li>
-                <li class="sidebar-dropdown">
-                    <a href="#dashboard">
+                <li class="sidebar-dropdown category" data-clear="true">
+                    <a href="#dashboard" data-clear="false">
                         <i class="fa fa-tachometer-alt"></i>
                         <span class="menu-text">Dashboard</span>
                     </a>
@@ -22,10 +22,11 @@
                             <li><a href="#per_cpu"><i class="fa fa-microchip"></i>Per-CPU</a></li>
                             <li><a href="#diskio"><i class="fa fa-hdd"></i>Disk IO</a></li>
                             <li><a href="#memory"><i class="fa fa-memory"></i>Memory</a></li>
+                            <li><a href="#swap_memory"><i class="fa fa-memory"></i>Swap Memory</a></li>
                         </ul>
                     </div>
                 </li>
-                <li class="sidebar-dropdown">
+                <li class="sidebar-dropdown category" data-clear="true">
                     <a href="#tomcat">
                         <i class="fa fa-cat"></i>
                         <span class="menu-text">Tomcat usage</span>
@@ -40,7 +41,7 @@
                         </ul>
                     </div>
                 </li>
-                <li class="sidebar-dropdown">
+                <li class="sidebar-dropdown category" data-clear="true">
                     <a href="#imap">
                         <i class="fas fa-at"></i>
                         <span class="menu-text">Imap</span>
@@ -58,14 +59,14 @@
                 <li class="header-menu">
                     <span>Extra</span>
                 </li>
-                <li>
+                <li class="category">
                     <a data-clear="true" href="#tomcat_logs">
                         <i class="fas fa-file-alt"></i><i class="fa fa-cat closer-to-first"></i>
                         <span class="menu-text">Web logs (Scalix)</span>
                         <span class="badge badge-pill badge-primary">Coming Soon</span>
                     </a>
                 </li>
-                <li>
+                <li class="category">
                     <a href="#">
                         <i class="fa fa-file-alt"></i><i class="fas fa-at closer-to-first"></i>
                         <span class="menu-text">Scalix Server logs</span>
