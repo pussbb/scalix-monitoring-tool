@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 """
 """
+from typing import List
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -14,7 +15,7 @@ _imap = sa.Table(
     sa.Column('data', JSONB),
 )
 
-__SQL_MAIN = """
+_SQL_MAIN = """
 with dict as (
     select t.ts, t.data 
     from imap t
@@ -24,7 +25,7 @@ with dict as (
 """
 
 
-_SQL_ALL = __SQL_MAIN + """
+_SQL_ALL = _SQL_MAIN + """
 select t2.key,
        jsonb_agg(jsonb_build_array(t2.ts, t2.data ->> t2.key)) as data
 from ( select ts, jsonb_object_keys(dict.data) as key, dict.data as data from dict) t2
@@ -32,14 +33,13 @@ group by t2.key
 """
 
 
-_SQL_UTILIZATION = __SQL_MAIN + """
+_SQL_BY_FIELDS = """
 select t2.key,
        jsonb_agg(jsonb_build_array(t2.ts, t2.data ->> t2.key)) as data
 from
      (
        select
-              unnest(ARRAY['disks_write_per_sec', 'disks_read_per_sec', 
-              'memory_swap', 'memory_uss', 'cpu']) as key,
+              unnest(ARRAY{}) as key,
               ts,
               dict.data as data
        from dict
@@ -48,31 +48,6 @@ from
      as t2
 group by t2.key
 
-"""
-
-_SQL_UTILIZATION_OTHER = __SQL_MAIN + """
-select t2.key,
-       jsonb_agg(jsonb_build_array(t2.ts, t2.data ->> t2.key)) as data
-from
-     (
-       select
-              unnest(ARRAY['fds', 'zombie', 'close_wait_to_imap', 'threads', 
-              'connections', 'procs']) as key,
-              ts,
-              dict.data as data
-       from dict
-
-       )
-     as t2
-group by t2.key
-
-"""
-
-_SQL_INSTANCES = """
-select jsonb_object_keys(t.data) as name
-from tomcat t
-{}
-group by name
 """
 
 
@@ -81,14 +56,14 @@ class Imap(BaseModel):
     table = _imap
 
     @staticmethod
-    async def utilization_stats(engine: 'aiopg._EngineContextManager',
-                                time_filter):
-        return Imap.stats(engine, time_filter, _SQL_UTILIZATION)
-
-    @staticmethod
-    async def utilization_other_stats(engine: 'aiopg._EngineContextManager',
-                                      time_filter):
-        return Imap.stats(engine, time_filter, _SQL_UTILIZATION_OTHER)
+    async def stats_for(engine: 'aiopg._EngineContextManager',
+                        time_filter,
+                        fields: List):
+        return Imap.stats(
+            engine,
+            time_filter,
+            _SQL_MAIN + _SQL_BY_FIELDS.format(fields)
+        )
 
     @staticmethod
     async def stats(engine: 'aiopg._EngineContextManager',

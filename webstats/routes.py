@@ -6,8 +6,11 @@ from aiohttp import web
 from . import CURRENT_DIR
 from .views import (
     index, cpu, per_cpu, swap_mem, physical_mem, disk_io,
-    tomcat, tomcat_other_utilization, tomcat_utilization,
-    imap_other_utilization, imap, imap_utilization)
+    tomcat, tomcat_other_utilization,
+    imap_other_utilization, imap, tomcat_cpu_utilization,
+    tomcat_memory_utilization, tomcat_disk_io_utilization,
+    tomcat_conn_utilization, imap_cpu_utilization, imap_memory_utilization,
+    imap_disk_io_utilization, imap_conn_utilization)
 
 
 def setup_routes(app):
@@ -18,9 +21,16 @@ def setup_routes(app):
     app.router.add_get('/physical_mem', physical_mem)
     app.router.add_get('/disk_io', disk_io)
     app.router.add_get('/tomcat', tomcat)
+    app.router.add_get('/tomcat_cpu_utilization', tomcat_cpu_utilization)
+    app.router.add_get('/tomcat_memory_utilization', tomcat_memory_utilization)
+    app.router.add_get('/tomcat_disk_io_utilization',
+                       tomcat_disk_io_utilization)
+    app.router.add_get('/tomcat_conn_utilization', tomcat_conn_utilization)
     app.router.add_get('/tomcat_other_utilization', tomcat_other_utilization)
-    app.router.add_get('/tomcat_utilization', tomcat_utilization)
     app.router.add_get('/imap', imap)
+    app.router.add_get('/imap_cpu_utilization', imap_cpu_utilization)
+    app.router.add_get('/imap_memory_utilization', imap_memory_utilization)
+    app.router.add_get('/imap_disk_io_utilization', imap_disk_io_utilization)
+    app.router.add_get('/imap_conn_utilization', imap_conn_utilization)
     app.router.add_get('/imap_other_utilization', imap_other_utilization)
-    app.router.add_get('/imap_utilization', imap_utilization)
     app.add_routes([web.static('/static', CURRENT_DIR + '/../static')])

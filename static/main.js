@@ -259,10 +259,10 @@ function memoryChartOption(title, shortTitle) {
             zoomType: 'x'
         },
         tooltip: {
-                formatter: function(){
-                   return bytes(this.y, true);
-                }
-            },
+            formatter: function () {
+                return bytes(this.y, true);
+            }
+        },
         title: {
             text: title
         },
@@ -279,7 +279,7 @@ function memoryChartOption(title, shortTitle) {
                 text: shortTitle_
             },
             labels: {
-                formatter: function() {
+                formatter: function () {
                     return bytes(this.value, true);
                 }
             }
@@ -319,8 +319,6 @@ function simpleChartOptions(title, shortTitle) {
             type: 'datetime'
         },
         yAxis: {
-            min: 0,
-            max: 100,
             title: {
                 text: shortTitle_
             }
@@ -337,6 +335,13 @@ function simpleChartOptions(title, shortTitle) {
 
         series: []
     };
+}
+
+function cpuChartOptions(title, shortTitle) {
+    let options = simpleChartOptions(title, shortTitle);
+    options.yAxis.min = 0;
+    options.yAxis.max = 100;
+    return options;
 }
 
 function timeRangeChange(graph) {
@@ -378,7 +383,7 @@ $(function () {
                 'label-prefix': "CPU ",
                 'url': "/cpu"
             },
-            chart_options: simpleChartOptions('CPU usage')
+            chart_options: cpuChartOptions('CPU usage')
         },
         '#per_cpu': {
             container: 'per_cpu_container',
@@ -387,7 +392,7 @@ $(function () {
                 'label-prefix': "CPU ",
                 'url': "/per_cpu"
             },
-            chart_options:  simpleChartOptions('CPU(per cpu) usage', 'CPU usage')
+            chart_options: cpuChartOptions('CPU(per cpu) usage', 'CPU usage')
         },
         '#memory': {
             container: 'physical_mem_container',
@@ -395,7 +400,7 @@ $(function () {
                 'label-prefix': "",
                 'url': "/physical_mem"
             },
-            chart_options:  memoryChartOption('Memory usage')
+            chart_options: memoryChartOption('Memory usage')
         },
         '#swap_memory': {
             container: 'swap_mem_container',
@@ -403,17 +408,99 @@ $(function () {
                 'label-prefix': "",
                 'url': "/swap_mem"
             },
-            chart_options:  memoryChartOption('SWAP usage')
+            chart_options: memoryChartOption('SWAP usage')
         },
-        '#diskio':  {
+        '#diskio': {
             container: 'disk_io_container',
             data: {
                 'label-prefix': "",
                 'url': "/disk_io",
                 'hidden-on-start': "read_count,write_count,read_time,write_time,busy_time"
             },
-            chart_options:  memoryChartOption('Disk IO')
-        }
+            chart_options: memoryChartOption('Disk IO')
+        },
+        '#tomcat_cpu': {
+            container: 'tomcat_cpu_container',
+            data: {
+                'calc-min-max': "1",
+                'label-prefix': "",
+                'url': "/tomcat_cpu_utilization"
+            },
+            chart_options: cpuChartOptions('Tomcat CPU usage', 'CPU usage')
+        },
+        '#tomcat_diskio': {
+            container: 'tomcat_diskio_container',
+            data: {
+                'label-prefix': "",
+                'url': "/tomcat_disk_io_utilization"
+            },
+            chart_options: memoryChartOption('Tomcat Disk IO usage')
+        },
+        '#tomcat_memory': {
+            container: 'tomcat_memory_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/tomcat_memory_utilization"
+            },
+            chart_options: memoryChartOption('Tomcat Memory usage')
+        },
+        '#tomcat_sockets': {
+            container: 'tomcat_conn_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/tomcat_conn_utilization"
+            },
+            chart_options: simpleChartOptions('Tomcat Socket usage')
+        },
+        '#tomcat_other': {
+            container: 'tomcat_other_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/tomcat_other_utilization"
+            },
+            chart_options: simpleChartOptions('Tomcat Other usage')
+        },
+        '#imap_cpu': {
+            container: 'imap_cpu_container',
+            data: {
+                'calc-min-max': "1",
+                'label-prefix': "",
+                'url': "/imap_cpu_utilization"
+            },
+            chart_options: cpuChartOptions('Imap CPU usage', 'CPU usage')
+        },
+        '#imap_diskio': {
+            container: 'imap_diskio_container',
+            data: {
+                'label-prefix': "",
+                'url': "/imap_disk_io_utilization"
+            },
+            chart_options: memoryChartOption('Imap Disk IO usage')
+        },
+        '#imap_memory': {
+            container: 'Imap_memory_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/imap_memory_utilization"
+            },
+            chart_options: memoryChartOption('Imap Memory usage')
+        },
+        '#imap_sockets': {
+            container: 'imap_conn_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/imap_conn_utilization"
+            },
+            chart_options: simpleChartOptions('Imap Socket usage')
+        },
+        '#imap_other': {
+            container: 'imap_other_utilization_container',
+            data: {
+                'label-prefix': "",
+                'url': "/imap_other_utilization"
+            },
+            chart_options: simpleChartOptions('Imap Other usage')
+        },
     };
 
     // Dropdown menu
@@ -451,12 +538,20 @@ $(function () {
 
         let data = chartMap[$this[0].hash];
         if (data) {
-            let containerId = '#'+data.container;
+            let containerId = '#' + data.container;
             if ($(containerId).length > 0) {
+                $('html, body').animate(
+                    {scrollTop: $(containerId).offset().top},
+                    100
+                );
                 return;
             }
             addChart(data.container, data.data);
             timeRangeChange(build_chart(containerId, data.chart_options));
+            $('html, body').animate(
+                {scrollTop: $(containerId).offset().top},
+                100
+            );
         }
     });
 

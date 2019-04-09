@@ -112,16 +112,47 @@ async def tomcat(request):
     })
 
 
-async def tomcat_utilization(request):
-    res = Tomcat.utilization_stats(request.app.db_engine, build_time_range(request))
-    return web.json_response({
-        item[0]: item[1] async for item in await res
-    })
+async def tomcat_cpu_utilization(request):
+    return await _tomcat_utilization(request, ['cpu'])
+
+
+async def tomcat_memory_utilization(request):
+    return await _tomcat_utilization(request, ['memory_swap', 'memory_uss'])
+
+
+async def tomcat_disk_io_utilization(request):
+    return await _tomcat_utilization(
+        request,
+        ['disks_read_per_sec', 'disks_write_per_sec']
+    )
+
+
+async def tomcat_conn_utilization(request):
+    return await _tomcat_utilization(
+        request,
+        [
+            'close_wait_to_imap',
+            'connections',
+            'close_wait_conn',
+            'close_wait_to_java'
+        ]
+    )
 
 
 async def tomcat_other_utilization(request):
-    res = Tomcat.utilization_other_stats(request.app.db_engine,
-                                         build_time_range(request))
+    return await _tomcat_utilization(request, ['fds', 'threads'])
+
+
+async def _tomcat_utilization(request, fields):
+    return await _utilization(Tomcat, request, fields)
+
+
+async def _utilization(model, request, fields):
+    res = model.stats_for(
+        request.app.db_engine,
+        build_time_range(request),
+        fields
+    )
     return web.json_response({
         item[0]: item[1] async for item in await res
     })
@@ -134,16 +165,31 @@ async def imap(request):
     })
 
 
-async def imap_utilization(request):
-    res = Imap.utilization_stats(request.app.db_engine, build_time_range(request))
-    return web.json_response({
-        item[0]: item[1] async for item in await res
-    })
+async def imap_cpu_utilization(request):
+    return await _imap_utilization(request, ['cpu'])
+
+
+async def imap_memory_utilization(request):
+    return await _imap_utilization(request, ['memory_swap', 'memory_uss'])
+
+
+async def imap_disk_io_utilization(request):
+    return await _imap_utilization(
+        request,
+        ['disks_read_per_sec', 'disks_write_per_sec']
+    )
+
+
+async def imap_conn_utilization(request):
+    return await _imap_utilization(
+        request,
+        ['connections', 'close_wait_conn']
+    )
 
 
 async def imap_other_utilization(request):
-    res = Imap.utilization_other_stats(request.app.db_engine,
-                                         build_time_range(request))
-    return web.json_response({
-        item[0]: item[1] async for item in await res
-    })
+    return await _imap_utilization(request, ['fds', 'threads'])
+
+
+async def _imap_utilization(request, fields):
+    return await _utilization(Imap, request, fields)
