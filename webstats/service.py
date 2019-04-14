@@ -116,19 +116,22 @@ async def init_task(local_app):
 def service():
     """
 
-    :return:
+    :return: ServiceWebApplication
     """
     APP.on_startup.append(init_pg)
-
-    APP.on_cleanup.append(close_stats)
     APP.on_cleanup.append(close_pg)
     if DEBUG:
-        import aiohttp_debugtoolbar
-        aiohttp_debugtoolbar.setup(APP)
-    aiohttp_jinja2.setup(APP,
-                         loader=jinja2.FileSystemLoader(
-                             CURRENT_DIR + "/../templates/")
-                         )
+        try:
+            import aiohttp_debugtoolbar
+        except ImportError as _:
+            pass
+        else:
+            aiohttp_debugtoolbar.setup(APP)
+
+    aiohttp_jinja2.setup(
+        APP,
+        loader=jinja2.FileSystemLoader(CURRENT_DIR + "/../templates/")
+    )
     return APP
 
 
@@ -136,4 +139,5 @@ def run(host=None, port=8080, path=None):
     app_ = service()
     app_.on_startup.append(init_db)
     app_.on_startup.append(init_task)
+    APP.on_cleanup.insert(0, close_stats)
     web.run_app(app_, host=host, port=port, path=path)

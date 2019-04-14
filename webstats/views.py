@@ -105,6 +105,22 @@ async def disk_io(request):
     })
 
 
+async def disk_io_bytes(request):
+    res = DiskIO.stats(request.app.db_engine, build_time_range(request),
+                       ['read_bytes', 'write_bytes'])
+    return web.json_response({
+        item[0]: item[1] async for item in res
+    })
+
+
+async def disk_io_counts(request):
+    res = DiskIO.stats(request.app.db_engine, build_time_range(request),
+                       ['read_count', 'write_count', 'read_time', 'write_time'])
+    return web.json_response({
+        item[0]: item[1] async for item in res
+    })
+
+
 async def tomcat(request):
     res = Tomcat.stats(request.app.db_engine, build_time_range(request))
     return web.json_response({

@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from . import sa, metadata, BaseModel
 
-_per_cpus = sa.Table(
+_PER_CPU_TABLE = sa.Table(
     'per_cpu',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
@@ -31,7 +31,7 @@ GROUP BY t2.cpu_id
 
 
 class PerCpu(BaseModel):
-    table = _per_cpus
+    table = _PER_CPU_TABLE
 
     @staticmethod
     async def stats(engine: 'aiopg._EngineContextManager', time_filter):

@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 from . import sa, metadata, BaseModel
 
-_cpus = sa.Table(
+_CPUS_TABLE = sa.Table(
     'cpu',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
@@ -22,7 +22,7 @@ where {}
 
 
 class Cpu(BaseModel):
-    table = _cpus
+    table = _CPUS_TABLE
 
     @staticmethod
     async def stats(engine: 'aiopg._EngineContextManager', time_filter):

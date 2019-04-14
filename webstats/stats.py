@@ -68,26 +68,18 @@ async def memory(db_engine: 'aiopg._EngineContextManager'):
         await Memory.add(db_engine, data=data, type=type_id)
 
 
-_DISK_IO = ['read_count', 'write_count', 'read_bytes', 'write_bytes',
-            'read_time', 'write_time', 'busy_time']
-
-
 async def disk_io(db_engine: 'aiopg._EngineContextManager'):
     """
     https://github.com/giampaolo/psutil/blob/master/scripts/iotop.py
     :param db_engine:
     :return:
     """
-    disks_before = psutil.disk_io_counters()
+    iob = psutil.disk_io_counters()
     await asyncio.sleep(1)
-    disks_after = psutil.disk_io_counters()
-    disks_read_per_sec = disks_after.read_bytes - disks_before.read_bytes
-    disks_write_per_sec = disks_after.write_bytes - disks_before.write_bytes
-    data = {
-        'disks_read_per_sec': disks_read_per_sec,
-        'disks_write_per_sec': disks_write_per_sec,
-    }
-    await DiskIO.add(db_engine, data=data)
+    ioa = psutil.disk_io_counters()
+    data = {item: getattr(ioa, item) - getattr(iob, item)
+            for item in DiskIO.counters}
+    await DiskIO.add(db_engine, **data)
 
 
 _RE_INSTANCE = re.compile(r'/var/opt/scalix/(\w{,2})/tomcat/.*')
@@ -113,10 +105,10 @@ async def tomcat(db_engine: 'aiopg._EngineContextManager'):
         with proc.oneshot():
             io_counters = proc.io_counters()
             pdata['disks_read_per_sec'] = (
-                    io_counters.read_bytes - proc._before_disk_io.read_bytes
+                io_counters.read_bytes - proc._before_disk_io.read_bytes
             )
             pdata['disks_write_per_sec'] = (
-                    io_counters.write_bytes - proc._before_disk_io.write_bytes
+                io_counters.write_bytes - proc._before_disk_io.write_bytes
             )
 
             mem_info = proc.memory_full_info()
@@ -172,10 +164,10 @@ async def imap(db_engine: 'aiopg._EngineContextManager'):
         with proc.oneshot():
             io_counters = proc.io_counters()
             data['disks_read_per_sec'] += (
-                    io_counters.read_bytes - proc._before_disk_io.read_bytes
+                io_counters.read_bytes - proc._before_disk_io.read_bytes
             )
             data['disks_write_per_sec'] += (
-                    io_counters.write_bytes - proc._before_disk_io.write_bytes
+                io_counters.write_bytes - proc._before_disk_io.write_bytes
             )
 
             mem_info = proc.memory_full_info()

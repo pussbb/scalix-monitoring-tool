@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from . import sa, metadata, BaseModel
 
-_memory = sa.Table(
+_MEMORY_TABLE = sa.Table(
     'memory',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
@@ -33,23 +33,25 @@ group by t2.key
 
 
 class Memory(BaseModel):
-    table = _memory
+    table = _MEMORY_TABLE
     PHYSICAL = 1
     SWAP = 2
 
     @staticmethod
     async def __get_stats(engine: 'aiopg._EngineContextManager',
-                             time_filter, type_):
+                          time_filter,
+                          type_):
         time_range = Memory.time_range_str(time_filter)
         async with engine.acquire() as conn:
             async for item in conn.execute(_SQL.format(type_, time_range)):
                 yield item
 
     @staticmethod
-    async def physical_stats(engine: 'aiopg._EngineContextManager', time_filter):
+    async def physical_stats(engine: 'aiopg._EngineContextManager',
+                             time_filter):
         return Memory.__get_stats(engine, time_filter, Memory.PHYSICAL)
 
     @staticmethod
     async def swap_stats(engine: 'aiopg._EngineContextManager',
-                             time_filter):
+                         time_filter):
         return Memory.__get_stats(engine, time_filter, Memory.SWAP)

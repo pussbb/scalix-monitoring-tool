@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from . import sa, metadata, BaseModel
 
-_imap = sa.Table(
+_IMAP_TABLE = sa.Table(
     'imap',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
@@ -53,7 +53,7 @@ group by t2.key
 
 class Imap(BaseModel):
 
-    table = _imap
+    table = _IMAP_TABLE
 
     @staticmethod
     async def stats_for(engine: 'aiopg._EngineContextManager',

@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from . import sa, metadata, BaseModel
 
-_tomcat = sa.Table(
+_TOMCAT_TABLE = sa.Table(
     'tomcat',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
@@ -58,7 +58,7 @@ group by name
 
 
 class Tomcat(BaseModel):
-    table = _tomcat
+    table = _TOMCAT_TABLE
 
     @staticmethod
     async def stats_for(engine: 'aiopg._EngineContextManager',

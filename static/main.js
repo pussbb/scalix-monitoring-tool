@@ -414,10 +414,18 @@ $(function () {
             container: 'disk_io_container',
             data: {
                 'label-prefix': "",
-                'url': "/disk_io",
+                'url': "/disk_io_bytes",
                 'hidden-on-start': "read_count,write_count,read_time,write_time,busy_time"
             },
             chart_options: memoryChartOption('Disk IO')
+        },
+        '#diskio_other': {
+            container: 'diskio_other_container',
+            data: {
+                'label-prefix': "",
+                'url': "/disk_io_counts",
+            },
+            chart_options: simpleChartOptions('Disk IO counters')
         },
         '#tomcat_cpu': {
             container: 'tomcat_cpu_container',
