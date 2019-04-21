@@ -9,8 +9,8 @@ from yarl import URL
 
 from webstats.models.cpu import Cpu
 from webstats.models.disk_io import DiskIO
-from webstats.models.imap import Imap
 from webstats.models.memory import Memory
+from webstats.models.process import Process
 from webstats.models.tomcat import Tomcat
 from .system.platform import Platform
 from .models.per_cpu import PerCpu
@@ -24,6 +24,8 @@ async def index(request):
     data['jre'] = jre
     data['packages'] = packages
     data['static_base_url'] = URL.build(scheme='', host=request.host)
+    data['system_stats'] = dict(request.app.stats_config.system).keys()
+    data['processes'] = request.app.stats_config.processes
     return data
 
 
@@ -174,38 +176,26 @@ async def _utilization(model, request, fields):
     })
 
 
-async def imap(request):
-    res = Imap.stats(request.app.db_engine, build_time_range(request))
+_PROCESS_FILEDS_KEY_VALUES = {
+    'conn': ['connections', 'close_wait_conn'],
+    'other': ['fds', 'threads', 'zombie', 'procs'],
+    'cpu': ['cpu'],
+    'memory': ['memory_swap', 'memory_uss'],
+    'diskio': ['disks_read_per_sec', 'disks_write_per_sec']
+}
+
+
+async def process(request):
+    proc_name = request.match_info.get('name')
+    if not proc_name:
+        return web.HTTPBadRequest('Process name is empty')
+
+    stats = Process.stats(
+        request.app.db_engine,
+        proc_name,
+        build_time_range(request),
+        _PROCESS_FILEDS_KEY_VALUES.get(request.match_info.get('fields_key'))
+    )
     return web.json_response({
-        item[0]: item[1] async for item in res
+        item[0]: item[1] async for item in stats
     })
-
-
-async def imap_cpu_utilization(request):
-    return await _imap_utilization(request, ['cpu'])
-
-
-async def imap_memory_utilization(request):
-    return await _imap_utilization(request, ['memory_swap', 'memory_uss'])
-
-
-async def imap_disk_io_utilization(request):
-    return await _imap_utilization(
-        request,
-        ['disks_read_per_sec', 'disks_write_per_sec']
-    )
-
-
-async def imap_conn_utilization(request):
-    return await _imap_utilization(
-        request,
-        ['connections', 'close_wait_conn']
-    )
-
-
-async def imap_other_utilization(request):
-    return await _imap_utilization(request, ['fds', 'threads'])
-
-
-async def _imap_utilization(request, fields):
-    return await _utilization(Imap, request, fields)

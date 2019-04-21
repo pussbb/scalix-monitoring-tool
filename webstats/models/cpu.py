@@ -16,7 +16,8 @@ _CPUS_TABLE = sa.Table(
 
 
 _SQL = """
-select array_agg(array[t.ts::text, t.data::text]) as data from cpu t
+select array_agg(array[t.ts::text, t.data::text] order by t.ts) as data 
+from cpu t
 where {}
 """
 

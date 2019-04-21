@@ -6,7 +6,6 @@ import asyncio
 import io
 import os
 import shlex
-import atexit
 from typing import AnyStr
 
 

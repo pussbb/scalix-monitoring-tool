@@ -10,13 +10,13 @@ _DISK_IO_TABLE = sa.Table(
     'disk_io',
     metadata,
     sa.Column('ts', sa.DateTime(True), nullable=False, default=func.now()),
-    sa.Column('read_count', sa.Integer, comment='number of reads'),
-    sa.Column('write_count', sa.Integer, comment='number of writes'),
-    sa.Column('read_bytes', sa.Integer, comment='number of bytes read'),
-    sa.Column('write_bytes', sa.Integer, comment='number of bytes written'),
-    sa.Column('read_time', sa.Integer,
+    sa.Column('read_count', sa.BigInteger, comment='number of reads'),
+    sa.Column('write_count', sa.BigInteger, comment='number of writes'),
+    sa.Column('read_bytes', sa.BigInteger, comment='number of bytes read'),
+    sa.Column('write_bytes', sa.BigInteger, comment='number of bytes written'),
+    sa.Column('read_time', sa.BigInteger,
               comment='time spent reading from disk (in ms)'),
-    sa.Column('write_time', sa.Integer,
+    sa.Column('write_time', sa.BigInteger,
               comment='time spent writing to disk (in ms)')
 )
 

@@ -2,6 +2,7 @@
 """
 """
 import argparse
+from pathlib import Path
 
 from webstats import service
 
@@ -19,8 +20,13 @@ if __name__ == "__main__":
     PARSER.add_argument('--daemon', '-d',
                         dest="daemonize",
                         action='store_true')
+    PARSER.add_argument('--pid',
+                        type=Path,
+                        help="Path to the data directory"
+                        )
     ARGS = PARSER.parse_args()
     if ARGS.daemonize:
-        cron()
+        service.run(host=None, port=None, path='/tmp/webstats.sock',
+                    pid_file=ARGS.pid)
     else:
-        service.run()
+        service.run(pid_file=ARGS.pid)

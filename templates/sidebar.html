@@ -18,15 +18,25 @@
                     </a>
                     <div class="sidebar-submenu">
                         <ul>
+
+                            {% if 'cpu' in system_stats %}
                             <li><a href="#cpu"><i class="fa fa-microchip"></i>CPU</a></li>
+                            {% endif %}
+                            {% if 'per_cpu' in system_stats %}
                             <li><a href="#per_cpu"><i class="fa fa-microchip"></i>Per-CPU</a></li>
+                            {% endif %}
+                            {% if 'disk_io' in system_stats %}
                             <li><a href="#diskio"><i class="fa fa-hdd"></i>Disk IO (bytes)</a></li>
                             <li><a href="#diskio_other"><i class="fa fa-hdd"></i>Disk IO (counts)</a></li>
+                            {% endif %}
+                            {% if 'memory' in system_stats %}
                             <li><a href="#memory"><i class="fa fa-memory"></i>Memory</a></li>
                             <li><a href="#swap_memory"><i class="fa fa-memory"></i>Swap Memory</a></li>
+                            {% endif %}
                         </ul>
                     </div>
                 </li>
+                {% if 'tomcat' in system_stats %}
                 <li class="sidebar-dropdown category" data-clear="true">
                     <a href="#tomcat">
                         <i class="fa fa-cat"></i>
@@ -42,21 +52,27 @@
                         </ul>
                     </div>
                 </li>
-                <li class="sidebar-dropdown category" data-clear="true">
-                    <a href="#imap">
-                        <i class="fas fa-at"></i>
-                        <span class="menu-text">Imap</span>
-                    </a>
-                    <div class="sidebar-submenu">
-                        <ul>
-                            <li><a href="#imap_cpu"><i class="fa fa-microchip"></i>Imap CPU</a></li>
-                            <li><a href="#imap_diskio"><i class="fa fa-hdd"></i>Imap Disk IO</a></li>
-                            <li><a href="#imap_memory"><i class="fa fa-memory"></i>Imap Memory</a></li>
-                            <li><a href="#imap_sockets"><i class="fas fa-ethernet"></i>Sockets</a></li>
-                            <li><a href="#imap_other"><i class="fab fa-dev"></i>Threads and File descriptors</a></li>
-                        </ul>
-                    </div>
-                </li>
+                {% endif %}
+                <script lang="text/javascript">
+
+                </script>
+                {% for proc in processes %}
+                    <li class="sidebar-dropdown category" data-clear="true">
+                        <a href="#{{proc.name}}">
+                            <i class="{{proc.icon}}"></i>
+                            <span class="menu-text">{{proc.title}}</span>
+                        </a>
+                        <div class="sidebar-submenu">
+                            <ul>
+                                <li><a href="#{{proc.name}}_cpu"><i class="fa fa-microchip"></i>CPU</a></li>
+                                <li><a href="#{{proc.name}}_diskio"><i class="fa fa-hdd"></i>Disk IO</a></li>
+                                <li><a href="#{{proc.name}}_memory"><i class="fa fa-memory"></i>Memory</a></li>
+                                <li><a href="#{{proc.name}}_sockets"><i class="fas fa-ethernet"></i>Sockets</a></li>
+                                <li><a href="#{{proc.name}}_other"><i class="fab fa-dev"></i> Threads and File descriptors</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                {% endfor %}
                 <li class="header-menu">
                     <span>Extra</span>
                 </li>

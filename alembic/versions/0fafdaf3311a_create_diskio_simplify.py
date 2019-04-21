@@ -10,7 +10,6 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-from webstats.models.disk_io import DiskIO
 
 revision = '0fafdaf3311a'
 down_revision = 'c8d8a9737fe9'
@@ -19,34 +18,34 @@ depends_on = None
 
 
 def upgrade():
-
-    op.drop_column(DiskIO.table.fullname, 'data')
-    op.execute('TRUNCATE {} RESTART IDENTITY;'.format(DiskIO.table.fullname))
+    table_name = 'disk_io'
+    op.drop_column(table_name, 'data')
+    op.execute('TRUNCATE {} RESTART IDENTITY;'.format(table_name))
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('read_count', sa.Integer, comment='number of reads')
+        table_name,
+        sa.Column('read_count', sa.BigInteger, comment='number of reads')
     )
 
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('write_count', sa.Integer, comment='number of writes')
+        table_name,
+        sa.Column('write_count', sa.BigInteger, comment='number of writes')
     )
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('read_bytes', sa.Integer, comment='number of bytes read')
+        table_name,
+        sa.Column('read_bytes', sa.BigInteger, comment='number of bytes read')
     )
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('write_bytes', sa.Integer, comment='number of bytes written')
+        table_name,
+        sa.Column('write_bytes', sa.BigInteger, comment='number of bytes written')
     )
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('read_time', sa.Integer,
+        table_name,
+        sa.Column('read_time', sa.BigInteger,
                   comment='time spent reading from disk (in ms)')
     )
     op.add_column(
-        DiskIO.table.fullname,
-        sa.Column('write_time', sa.Integer,
+        table_name,
+        sa.Column('write_time', sa.BigInteger,
                   comment='time spent writing to disk (in ms)')
     )
 

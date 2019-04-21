@@ -44,6 +44,10 @@ function requestData(e) {
         $elem.data(key, value);
     }
 
+    let url = __get_chart_data('url');
+    if (!url || url == '/') {
+        return;
+    }
     $.ajax({
         url: __get_chart_data('url'),
         data: {
@@ -64,9 +68,9 @@ function requestData(e) {
             }, 60000));
         },
         success: function (data) {
-            let min = [];
-            let avg = [];
-            let max = [];
+            let min = [0];
+            let avg = [0];
+            let max = [0];
             let labelPrefix = __get_chart_data('labelPrefix')
             let moreThenOne = Object.keys(data).length > 1;
             let formatName = (key) => {
@@ -128,10 +132,13 @@ function requestData(e) {
             }
 
             if (calcMinMax) {
+                let formatter = chart.axes[1].labelFormatter || function () {
+                    return this.value
+                };
                 chart.setTitle(null, {
-                    text: `<b>Min</b>: ${Math.min(...min)} %, 
-                        <b>Max:</b> ${Math.max(...max)} %, 
-                        <b>Avg:</b>${Math.max(...avg)} `
+                    text: `<b>Min:</b> ${formatter.call({value: Math.min(...min)})}, 
+                        <b>Max:</b> ${formatter.call({value: Math.max(...max)})}, 
+                        <b>Avg:</b> ${formatter.call({value: Math.max(...avg)})} `
                 });
             }
 
@@ -182,6 +189,7 @@ function build_chart(containerId, chartOptions) {
         clearChartTimeout();
         if (chart) {
             chart.destroy();
+            chart = null;
         }
         $chartElem.off('shiftDateChanged');
         $chartElem.off('destroy');
@@ -319,8 +327,14 @@ function simpleChartOptions(title, shortTitle) {
             type: 'datetime'
         },
         yAxis: {
+            min: 0,
             title: {
                 text: shortTitle_
+            },
+            labels: {
+                formatter: function () {
+                    return this.value;
+                }
             }
         },
         legend: {
@@ -337,10 +351,14 @@ function simpleChartOptions(title, shortTitle) {
     };
 }
 
-function cpuChartOptions(title, shortTitle) {
+function cpuChartOptions(title, shortTitle, maxVal) {
     let options = simpleChartOptions(title, shortTitle);
-    options.yAxis.min = 0;
-    options.yAxis.max = 100;
+    if (maxVal) {
+        options.yAxis.max = 100;
+    }
+    options.yAxis.labels.formatter = function () {
+        return `${this.value}%`;
+    };
     return options;
 }
 
@@ -364,6 +382,102 @@ function timeRangeChange(graph) {
     );
 }
 
+let chartMap = {
+    '#cpu': {
+        container: 'cpu_container',
+        data: {
+            'calc-min-max': "1",
+            'label-prefix': "CPU ",
+            'url': "/cpu"
+        },
+        chart_options: cpuChartOptions('CPU usage', 'CPU usage', 100)
+    },
+    '#per_cpu': {
+        container: 'per_cpu_container',
+        data: {
+            'calc-min-max': "1",
+            'label-prefix': "CPU ",
+            'url': "/per_cpu"
+        },
+        chart_options: cpuChartOptions('CPU(per cpu) usage', 'CPU usage', 100)
+    },
+    '#memory': {
+        container: 'physical_mem_container',
+        data: {
+            'label-prefix': "",
+            'url': "/physical_mem"
+        },
+        chart_options: memoryChartOption('Memory usage')
+    },
+    '#swap_memory': {
+        container: 'swap_mem_container',
+        data: {
+            'label-prefix': "",
+            'url': "/swap_mem"
+        },
+        chart_options: memoryChartOption('SWAP usage')
+    },
+    '#diskio': {
+        container: 'disk_io_container',
+        data: {
+            'label-prefix': "",
+            'url': "/disk_io_bytes",
+            'hidden-on-start': "read_count,write_count,read_time,write_time,busy_time"
+        },
+        chart_options: memoryChartOption('Disk IO')
+    },
+    '#diskio_other': {
+        container: 'diskio_other_container',
+        data: {
+            'label-prefix': "",
+            'url': "/disk_io_counts",
+        },
+        chart_options: simpleChartOptions('Disk IO counters')
+    },
+    '#tomcat_cpu': {
+        container: 'tomcat_cpu_container',
+        data: {
+            'calc-min-max': "1",
+            'label-prefix': "CPU",
+            'url': "/tomcat_cpu_utilization"
+        },
+        chart_options: cpuChartOptions('Tomcat CPU usage', 'CPU usage')
+    },
+    '#tomcat_diskio': {
+        container: 'tomcat_diskio_container',
+        data: {
+            'label-prefix': "",
+            'url': "/tomcat_disk_io_utilization"
+        },
+        chart_options: memoryChartOption('Tomcat Disk IO usage')
+    },
+    '#tomcat_memory': {
+        container: 'tomcat_memory_utilization_container',
+        data: {
+            'label-prefix': "",
+            'calc-min-max': "1",
+            'url': "/tomcat_memory_utilization"
+        },
+        chart_options: memoryChartOption('Tomcat Memory usage')
+    },
+    '#tomcat_sockets': {
+        container: 'tomcat_conn_utilization_container',
+        data: {
+            'label-prefix': "",
+            'url': "/tomcat_conn_utilization"
+        },
+        chart_options: simpleChartOptions('Tomcat Socket usage')
+    },
+    '#tomcat_other': {
+        container: 'tomcat_other_utilization_container',
+        data: {
+            'label-prefix': "",
+            'url': "/tomcat_other_utilization"
+        },
+        chart_options: simpleChartOptions('Tomcat Other usage')
+    },
+};
+
 $(function () {
 
     let mainContainer = $('main');
@@ -375,141 +489,71 @@ $(function () {
         return $chartElem;
     };
 
-    let chartMap = {
-        '#cpu': {
-            container: 'cpu_container',
-            data: {
-                'calc-min-max': "1",
-                'label-prefix': "CPU ",
-                'url': "/cpu"
-            },
-            chart_options: cpuChartOptions('CPU usage')
+    let dynChartMap = {
+        '_cpu': function (hash, chartContainerId, titlePrefix, procName) {
+            chartMap[hash] = {
+                container: chartContainerId + '_container',
+                data: {
+                    'calc-min-max': "1",
+                    'label-prefix': "CPU",
+                    'url': `/process/${procName}/cpu`
+                },
+                chart_options: cpuChartOptions(titlePrefix + ' CPU usage', 'CPU usage')
+            };
         },
-        '#per_cpu': {
-            container: 'per_cpu_container',
-            data: {
-                'calc-min-max': "1",
-                'label-prefix': "CPU ",
-                'url': "/per_cpu"
-            },
-            chart_options: cpuChartOptions('CPU(per cpu) usage', 'CPU usage')
+        '_diskio': function (hash, chartContainerId, titlePrefix, procName) {
+            chartMap[hash] = {
+                container: chartContainerId + '_container',
+                data: {
+                    'label-prefix': "",
+                    'url': `/process/${procName}/diskio`
+                },
+                chart_options: memoryChartOption(titlePrefix + ' Disk IO usage')
+            };
         },
-        '#memory': {
-            container: 'physical_mem_container',
-            data: {
-                'label-prefix': "",
-                'url': "/physical_mem"
-            },
-            chart_options: memoryChartOption('Memory usage')
+        '_memory': function (hash, chartContainerId, titlePrefix, procName) {
+            chartMap[hash] = {
+                container: chartContainerId + '_container',
+                data: {
+                    'label-prefix': "",
+                    'url': `/process/${procName}/memory`
+                },
+                chart_options: memoryChartOption(titlePrefix + ' Memory usage usage')
+            };
         },
-        '#swap_memory': {
-            container: 'swap_mem_container',
-            data: {
-                'label-prefix': "",
-                'url': "/swap_mem"
-            },
-            chart_options: memoryChartOption('SWAP usage')
+        '_sockets': function (hash, chartContainerId, titlePrefix, procName) {
+            chartMap[hash] = {
+                container: chartContainerId + '_container',
+                data: {
+                    'label-prefix': "",
+                    'url': `/process/${procName}/conn`
+                },
+                chart_options: simpleChartOptions(titlePrefix + ' Socket usage')
+            };
         },
-        '#diskio': {
-            container: 'disk_io_container',
-            data: {
-                'label-prefix': "",
-                'url': "/disk_io_bytes",
-                'hidden-on-start': "read_count,write_count,read_time,write_time,busy_time"
-            },
-            chart_options: memoryChartOption('Disk IO')
-        },
-        '#diskio_other': {
-            container: 'diskio_other_container',
-            data: {
-                'label-prefix': "",
-                'url': "/disk_io_counts",
-            },
-            chart_options: simpleChartOptions('Disk IO counters')
-        },
-        '#tomcat_cpu': {
-            container: 'tomcat_cpu_container',
-            data: {
-                'calc-min-max': "1",
-                'label-prefix': "",
-                'url': "/tomcat_cpu_utilization"
-            },
-            chart_options: cpuChartOptions('Tomcat CPU usage', 'CPU usage')
-        },
-        '#tomcat_diskio': {
-            container: 'tomcat_diskio_container',
-            data: {
-                'label-prefix': "",
-                'url': "/tomcat_disk_io_utilization"
-            },
-            chart_options: memoryChartOption('Tomcat Disk IO usage')
-        },
-        '#tomcat_memory': {
-            container: 'tomcat_memory_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/tomcat_memory_utilization"
-            },
-            chart_options: memoryChartOption('Tomcat Memory usage')
-        },
-        '#tomcat_sockets': {
-            container: 'tomcat_conn_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/tomcat_conn_utilization"
-            },
-            chart_options: simpleChartOptions('Tomcat Socket usage')
-        },
-        '#tomcat_other': {
-            container: 'tomcat_other_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/tomcat_other_utilization"
-            },
-            chart_options: simpleChartOptions('Tomcat Other usage')
-        },
-        '#imap_cpu': {
-            container: 'imap_cpu_container',
-            data: {
-                'calc-min-max': "1",
-                'label-prefix': "",
-                'url': "/imap_cpu_utilization"
-            },
-            chart_options: cpuChartOptions('Imap CPU usage', 'CPU usage')
-        },
-        '#imap_diskio': {
-            container: 'imap_diskio_container',
-            data: {
-                'label-prefix': "",
-                'url': "/imap_disk_io_utilization"
-            },
-            chart_options: memoryChartOption('Imap Disk IO usage')
-        },
-        '#imap_memory': {
-            container: 'Imap_memory_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/imap_memory_utilization"
-            },
-            chart_options: memoryChartOption('Imap Memory usage')
-        },
-        '#imap_sockets': {
-            container: 'imap_conn_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/imap_conn_utilization"
-            },
-            chart_options: simpleChartOptions('Imap Socket usage')
-        },
-        '#imap_other': {
-            container: 'imap_other_utilization_container',
-            data: {
-                'label-prefix': "",
-                'url': "/imap_other_utilization"
-            },
-            chart_options: simpleChartOptions('Imap Other usage')
+        '_other': function (hash, chartContainerId, titlePrefix, procName) {
+            chartMap[hash] = {
+                container: chartContainerId + '_container',
+                data: {
+                    'label-prefix': "",
+                    'url': `/process/${procName}/other`
+                },
+                chart_options: simpleChartOptions(titlePrefix + ' Other usage')
+            };
         },
     };
+
+    for (const [key, value] of Object.entries(dynChartMap)) {
+        $(`.sidebar-menu a[href$="${key}"]`).each(function (i, elem) {
+            if (!chartMap[elem.hash]) {
+                let category = $(elem).closest('.category');
+                let catTitle = $('a:first span', category).text();
+                let procName = $('a:first', category)[0].hash.slice(1);
+                let chartContainerId = elem.hash.slice(1).replace('\.', '_');
+                value(elem.hash, chartContainerId, catTitle, procName);
+            }
+        });
+    }
 
     // Dropdown menu
     $(".sidebar-menu").on('click', 'a', function () {
@@ -541,7 +585,6 @@ $(function () {
         if (!isActiveCat) {
             $(".sidebar-dropdown").removeClass("active");
             $category.addClass('active');
-
         }
 
         let data = chartMap[$this[0].hash];
@@ -582,7 +625,6 @@ $(function () {
         });
         $(".sidebar-content").addClass("desktop");
     }
-    ;
 
     $(document).on('click', 'details', function () {
         $(this).toggleClass("border border-warning");
