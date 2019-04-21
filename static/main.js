@@ -1,4 +1,7 @@
 function prepData(data) {
+    if (typeof data != 'object') {
+        return [];
+    }
     return data.map(item => {
         return [Date.parse(item[0]), parseFloat(item[1])]
     })
@@ -478,6 +481,17 @@ let chartMap = {
     },
 };
 
+function scrollTo(containerId) {
+    $('html, body').animate(
+        {scrollTop: $(containerId).offset().top},
+        100
+    );
+}
+
+function scalix_server_logs(mainContainer) {
+
+}
+
 $(function () {
 
     let mainContainer = $('main');
@@ -576,10 +590,10 @@ $(function () {
 
         if ($this.data('clear') !== undefined) {
             if (getBoolean($this.data('clear'))) {
-                $('.graph-stats').trigger('destroy');
+                $('article div:first-child', mainContainer).trigger('destroy');
             }
         } else if (getBoolean($category.data('clear')) && !isActiveCat) {
-            $('.graph-stats').trigger('destroy');
+            $('article div:first-child', mainContainer).trigger('destroy');
         }
 
         if (!isActiveCat) {
@@ -587,22 +601,22 @@ $(function () {
             $category.addClass('active');
         }
 
-        let data = chartMap[$this[0].hash];
-        if (data) {
-            let containerId = '#' + data.container;
+        let chartData = chartMap[$this[0].hash];
+        if (chartData) {
+            let containerId = '#' + chartData.container;
             if ($(containerId).length > 0) {
-                $('html, body').animate(
-                    {scrollTop: $(containerId).offset().top},
-                    100
-                );
+                scrollTo(containerId);
                 return;
             }
-            addChart(data.container, data.data);
-            timeRangeChange(build_chart(containerId, data.chart_options));
-            $('html, body').animate(
-                {scrollTop: $(containerId).offset().top},
-                100
-            );
+            addChart(chartData.container, chartData.data);
+            timeRangeChange(build_chart(containerId, chartData.chart_options));
+            scrollTo(containerId);
+        } else {
+            if ($this[0].hash == '#tomcat_logs') {
+                console.log('Scalix Tomcat logs');
+            } else if ($this[0].hash == '#scalix_server_logs') {
+                console.log('Scalix server logs');
+            }
         }
     });
 
