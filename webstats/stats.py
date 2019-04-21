@@ -173,8 +173,8 @@ def _processes(processes):
                     mem_info = proc.memory_full_info()
                     data['memory_uss'] += mem_info.uss
                     data['memory_swap'] += mem_info.swap
-                    data['cpu'] = +proc.cpu_percent()
-                    data['fds'] = +proc.num_fds()
+                    data['cpu'] += proc.cpu_percent()
+                    data['fds'] += proc.num_fds()
                     data['threads'] += proc.num_threads()
                     connections = proc.connections()
                     data['connections'] += len(connections)
