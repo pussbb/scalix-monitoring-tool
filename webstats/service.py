@@ -158,7 +158,9 @@ def run(host=None, port=8080, path=None, pid_file=None):
         try:
             import psutil
             with open(__lock_file, 'r') as pid_file:
-                psutil.Process(int(pid_file.read()))
+                proc = psutil.Process(int(pid_file.read()))
+                if 'python' not in proc.name():
+                    raise NoSuchProcess('pid is not our')
         except ImportError as _:
             pass
         except (NoSuchProcess, ValueError) as _:

@@ -160,4 +160,6 @@ class StatsConfig(Config):
         for item in self:
             if not item.endswith('-process'):
                 continue
+            if not StatsConfig.boolean_value(self[item].get('enabled', 'true')):
+                continue
             yield self[item]

@@ -21,12 +21,18 @@ from .models.cpu import Cpu
 
 __all__ = ('per_cpu', 'cpu', 'data_clean_up', 'memory', 'vacuum')
 
-_EXECUTOR = concurrent.futures.ProcessPoolExecutor(max_workers=10)
+_PROC_EXECUTOR = concurrent.futures.ProcessPoolExecutor(max_workers=10)
+_THREAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=50)
 
 
 def _run_blocking(*args):
     loop = asyncio.get_event_loop()
-    return loop.run_in_executor(_EXECUTOR, *args)
+    return loop.run_in_executor(_THREAD_EXECUTOR, *args)
+
+
+def _run_blocking_p(*args):
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(_PROC_EXECUTOR, *args)
 
 
 async def per_cpu(local_app: 'web.Application'):
@@ -83,7 +89,7 @@ async def disk_io(local_app: 'web.Application'):
 _RE_INSTANCE = re.compile(r'/var/opt/scalix/(\w{,2})/tomcat/.*')
 
 
-async def tomcat(local_app: 'web.Application'):
+def _tomcat():
     java_procs = []
     for proc in psutil.process_iter():
         if 'java' not in proc.name():
@@ -95,18 +101,20 @@ async def tomcat(local_app: 'web.Application'):
         proc._instance_name = instance_name[0]
         java_procs.append(proc)
 
-    await asyncio.sleep(1)
+    if not java_procs:
+        return {}
 
+    time.sleep(1)
     data = {}
     for proc in java_procs[:]:
         pdata = {}
         with proc.oneshot():
             io_counters = proc.io_counters()
             pdata['disks_read_per_sec'] = (
-                io_counters.read_bytes - proc._before_disk_io.read_bytes
+                    io_counters.read_bytes - proc._before_disk_io.read_bytes
             )
             pdata['disks_write_per_sec'] = (
-                io_counters.write_bytes - proc._before_disk_io.write_bytes
+                    io_counters.write_bytes - proc._before_disk_io.write_bytes
             )
 
             mem_info = proc.memory_full_info()
@@ -132,14 +140,20 @@ async def tomcat(local_app: 'web.Application'):
             pdata['close_wait_to_java'] = close_wait_to_java
             pdata['close_wait_to_imap'] = close_wait_to_imap
             data[proc._instance_name] = pdata
-    await Tomcat.add(local_app.db_engine, data=data)
+    return data
 
 
-def _processes(processes):
+async def tomcat(local_app: 'web.Application'):
+    data = await _run_blocking_p(_tomcat)
+    if data:
+        await Tomcat.add(local_app.db_engine, data=data)
+
+
+def _processes(proc_names):
     data = defaultdict(list)
     for proc in psutil.process_iter():
         try:
-            for needed in processes:
+            for needed in proc_names:
                 if needed in proc.name():
                     io_counts = 0
                     try:
@@ -186,9 +200,10 @@ def _processes(processes):
             except (psutil.NoSuchProcess, psutil.AccessDenied) as exp:
                 print(exp)
         return data
-
-    time.sleep(1)
     res = []
+    if not data:
+        return res
+    time.sleep(1)
     with ThreadPoolExecutor(max_workers=len(data)) as pool:
         procs = {
             pool.submit(_grab_data, val): name for name, val in data.items()
@@ -207,6 +222,6 @@ async def processes(local_app: 'web.Application'):
     procs = {
         item.name: item.stats for item in local_app.stats_config.processes
     }
-    for proc, data in await _run_blocking(_processes, procs):
+    for proc, data in await _run_blocking_p(_processes, procs):
         data['name'] = proc
         await Process.add(local_app.db_engine, **data)
