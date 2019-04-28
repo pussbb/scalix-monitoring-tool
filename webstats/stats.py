@@ -28,11 +28,18 @@ _THREAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=50)
 
 
 def _close_pool():
-    _PROC_EXECUTOR.shutdown(False)
-    _THREAD_EXECUTOR.shutdown(False)
+    try:
+        _PROC_EXECUTOR.shutdown(False)
+    except BaseException as _:
+        pass
+
+    try:
+        _THREAD_EXECUTOR.shutdown(False)
+    except BaseException as _:
+        pass
 
 
-atexit.register(_close_pool)
+#atexit.register(_close_pool)
 
 
 def _run_blocking(*args):
@@ -181,7 +188,7 @@ def _processes(proc_names):
         proc_data = defaultdict(int)
         try:
             if process.status() == psutil.STATUS_ZOMBIE:
-                proc_data['zombie'] += 1
+                proc_data['zombie'] = 1
             with process.oneshot():
                 ioa = process.io_counters()
                 proc_data['disks_read_per_sec'] += (
@@ -191,13 +198,13 @@ def _processes(proc_names):
                     ioa.write_bytes - iob.write_bytes
                 )
                 mem_info = process.memory_full_info()
-                proc_data['memory_uss'] += mem_info.uss
-                proc_data['memory_swap'] += mem_info.swap
-                proc_data['cpu'] += process.cpu_percent()
-                proc_data['fds'] += process.num_fds()
-                proc_data['threads'] += process.num_threads()
+                proc_data['memory_uss'] = mem_info.uss
+                proc_data['memory_swap'] = mem_info.swap
+                proc_data['cpu'] = process.cpu_percent()
+                proc_data['fds'] = process.num_fds()
+                proc_data['threads'] = process.num_threads()
                 connections = process.connections()
-                proc_data['connections'] += len(connections)
+                proc_data['connections'] = len(connections)
                 close_wait = 0
                 for conn in connections:
                     if conn.status == CONN_CLOSE_WAIT:

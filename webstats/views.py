@@ -12,6 +12,7 @@ from webstats.models.disk_io import DiskIO
 from webstats.models.memory import Memory
 from webstats.models.process import Process
 from webstats.models.tomcat import Tomcat
+from webstats.utils.shell_command import ShellCommand
 from .system.platform import Platform
 from .models.per_cpu import PerCpu
 
@@ -199,3 +200,38 @@ async def process(request):
     return web.json_response({
         item[0]: item[1] async for item in stats
     })
+
+
+async def scalix_server_logs(request):
+    if request.headers.get('accept') != 'text/event-stream':
+        return web.Response(status=406)
+
+    stream = web.StreamResponse(
+        status=200,
+        reason='OK',
+        headers={
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        }
+    )
+
+    stream.enable_chunked_encoding()
+    await stream.prepare(request)
+
+    cmd = ShellCommand('omshowlog', '-l', '15')
+
+    async def _write(line):
+        await stream.write(b"event: ssxlog\n")
+        await stream.write(b"data: %s\r\n" % line)
+
+    await stream.write(b"event: ssxlog\n")
+    await stream.write(b"data: Executing '%s'\n\n" % cmd)
+    res = await cmd.run(handler=_write)
+    await stream.write(b"event: ssxlog\n")
+    await stream.write(b'data: Command exit code %i\n\n' % res.exit_code)
+
+    await stream.write(b"event: close\n")
+    await stream.write(b"data: \n\n")
+    await stream.write_eof()
+    return stream

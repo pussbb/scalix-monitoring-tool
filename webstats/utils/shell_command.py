@@ -309,11 +309,15 @@ class ShellCommand(object):
         if not handler:
             def dummy(_): pass
             handler = dummy
+        if not asyncio.iscoroutinefunction(handler):
+            async def _handler(*args):
+                handler(*args)
+            handler = _handler
         response = io.BytesIO()
         async for line in proc.stdout:
             line = _unify_newlines(line)
             response.write(line)
-            handler(line)
+            await handler(line)
 
         exit_code = await proc.wait()
         del proc

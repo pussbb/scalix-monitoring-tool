@@ -489,7 +489,40 @@ function scrollTo(containerId) {
 }
 
 function scalix_server_logs(mainContainer) {
+    let $logElem = $(`<code></code>`);
+    mainContainer.append($logElem);
+    $logElem.wrap('<article></article>')
+    $logElem.wrap('<div></div>')
 
+    let evtSource = new EventSource('/scalix_server_logs', {withCredentials: true});
+    let closeEvent = function() {
+        if (evtSource) {
+            evtSource.removeEventListener('ssxlog', null);
+            evtSource.close();
+            delete evtSource;
+        }
+    };
+    $logElem.parent().on('destroy', function () {
+        closeEvent();
+        $logElem.parent().off('destroy');
+        $logElem.closest('article').remove();
+        closeEvent();
+    });
+    evtSource.onerror = function(err) {
+        $logElem.append(err + "<br/>");
+    };
+    evtSource.onmessage = function(event) {
+        console.log(arguments);
+    };
+    evtSource.onopen = function() {
+        console.log(arguments);
+    };
+    evtSource.addEventListener("ssxlog", function(event) {
+        $logElem.append(event.data + "<br/>");
+    }, false);
+    evtSource.addEventListener("close", function(event) {
+        closeEvent();
+    }, false);
 }
 
 $(function () {
@@ -615,7 +648,7 @@ $(function () {
             if ($this[0].hash == '#tomcat_logs') {
                 console.log('Scalix Tomcat logs');
             } else if ($this[0].hash == '#scalix_server_logs') {
-                console.log('Scalix server logs');
+                 scalix_server_logs(mainContainer);
             }
         }
     });

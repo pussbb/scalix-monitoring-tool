@@ -178,8 +178,11 @@ def run(host=None, port=8080, path=None, pid_file=None):
         raise SystemExit('Application already running. {0}'.format(__lock_file))
 
     def _inner(*args):
-        if os.path.exists(__lock_file):
-            os.remove(__lock_file)
+        try:
+            if os.path.exists(__lock_file):
+                os.remove(__lock_file)
+        except BaseException as _:
+            pass
 
     import atexit
     atexit.register(_inner)
