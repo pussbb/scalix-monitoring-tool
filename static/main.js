@@ -488,6 +488,17 @@ function scrollTo(containerId) {
     );
 }
 
+function scalix_tomcats_logs(mainContainer) {
+    let $logElem = $(`<div></div>`);
+    mainContainer.append($logElem);
+    $logElem.wrap('<article></article>')
+    $logElem.load('/scalix_tomcat_logs');
+    $logElem.on('destroy', function () {
+        $logElem.off('destroy');
+        $logElem.closest('article').remove();
+    });
+}
+
 function scalix_server_logs(mainContainer) {
     let $logElem = $(`<pre></pre>`);
     mainContainer.append($logElem);
@@ -650,7 +661,7 @@ $(function () {
             scrollTo(containerId);
         } else {
             if ($this[0].hash == '#tomcat_logs') {
-                console.log('Scalix Tomcat logs');
+                scalix_tomcats_logs(mainContainer);
             } else if ($this[0].hash == '#scalix_server_logs') {
                  scalix_server_logs(mainContainer);
             }

@@ -2,6 +2,9 @@
 """
 """
 import asyncio
+import glob
+import os
+from collections import defaultdict
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -12,6 +15,9 @@ from webstats.models.disk_io import DiskIO
 from webstats.models.memory import Memory
 from webstats.models.process import Process
 from webstats.models.tomcat import Tomcat
+from webstats.stats import RE_INSTANCE
+from webstats.utils.json import to_json
+from webstats.utils.parse_tomcat_logs import log_files, group_errors
 from webstats.utils.shell_command import ShellCommand
 from .system.platform import Platform
 from .models.per_cpu import PerCpu
@@ -235,3 +241,31 @@ async def scalix_server_logs(request):
     await stream.write(b"data: \n\n")
     await stream.write_eof()
     return stream
+
+
+async def scalix_tomcat_logs(request):
+    res = {}
+    for inst_dir in glob.glob('/var/opt/scalix/*/tomcat/logs/'):
+        print(inst_dir)
+        instance_name = RE_INSTANCE.findall(inst_dir)
+        if not instance_name:
+            continue
+        instance_name = instance_name[0]
+        res[instance_name] = defaultdict(dict)
+        for file_ in log_files(inst_dir):
+            print('Proccessing', file_, '...')
+            grouped_errors, summary = group_errors(file_)
+            if not grouped_errors:
+                continue
+            res[instance_name][os.path.basename(file_)] = {
+                'errors': {key.decode(): val
+                           for key, val in grouped_errors.items()},
+                'summary': {key.decode(): val
+                            for key, val in summary.items()},
+            }
+    print(res)
+    if 'json' not in request.headers.get('accept'):
+        return aiohttp_jinja2.render_template('tomcat_logs.html', request,
+                                              {'data': res})
+
+    return web.json_response(res, dumps=to_json)

@@ -103,7 +103,7 @@ async def disk_io(local_app: 'web.Application'):
     await DiskIO.add(local_app.db_engine, **data)
 
 
-_RE_INSTANCE = re.compile(r'/var/opt/scalix/(\w{,2})/tomcat/.*')
+RE_INSTANCE = re.compile(r'/var/opt/scalix/(\w{,2})/tomcat/.*')
 
 
 def _tomcat():
@@ -111,7 +111,7 @@ def _tomcat():
     for proc in psutil.process_iter():
         if 'java' not in proc.name():
             continue
-        instance_name = _RE_INSTANCE.findall(''.join(proc.cmdline()))
+        instance_name = RE_INSTANCE.findall(''.join(proc.cmdline()))
         if not instance_name:
             continue
         proc._before_disk_io = proc.io_counters()

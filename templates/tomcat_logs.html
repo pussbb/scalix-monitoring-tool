@@ -1,0 +1,34 @@
+<div id="accordion">
+
+    {% for instance_name, files in data.items() %}
+      {% if files %}
+          {% for filename, errors in files.items() %}
+             {% for klass, items in errors['errors'].items() %}
+             {% set id = (instance_name + filename + klass).replace('-', '').replace('.', '') %}
+             <div class="card">
+              <div class="card-header" id="heading{{id}}">
+                <h5 class="mb-0">
+                  <button class="btn btn-link"
+                          data-toggle="collapse"
+                          data-target="#collapsesxWebLogs{{id}}"
+                          aria-expanded="true" aria-controls="collapsesxWebLogs{{id}}">
+                    Instance {{instance_name}}, log filename {{filename}} {{klass}}
+                  </button>
+                </h5>
+              </div>
+
+              <div id="collapsesxWebLogs{{id}}"
+                   class="collapse"
+                   aria-labelledby="heading{{id}}" data-parent="#accordion">
+                <div class="card-body">
+                  <pre>{% for item in items %}{{item.decode()}}{% endfor %}
+                  </pre>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% endfor %}
+      {% endif %}
+    {% endfor %}
+
+</div>
