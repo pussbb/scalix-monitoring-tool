@@ -225,7 +225,7 @@ async def scalix_server_logs(request):
     stream.enable_chunked_encoding()
     await stream.prepare(request)
 
-    cmd = ShellCommand('omshowlog', '-l', '15')
+    cmd = ShellCommand('/opt/scalix/bin/omshowlog', '-l', '9')
 
     async def _write(line):
         await stream.write(b"event: ssxlog\n")
@@ -246,7 +246,6 @@ async def scalix_server_logs(request):
 async def scalix_tomcat_logs(request):
     res = {}
     for inst_dir in glob.glob('/var/opt/scalix/*/tomcat/logs/'):
-        print(inst_dir)
         instance_name = RE_INSTANCE.findall(inst_dir)
         if not instance_name:
             continue
@@ -263,7 +262,8 @@ async def scalix_tomcat_logs(request):
                 'summary': {key.decode(): val
                             for key, val in summary.items()},
             }
-    print(res)
+
+
     if 'json' not in request.headers.get('accept'):
         return aiohttp_jinja2.render_template('tomcat_logs.html', request,
                                               {'data': res})
