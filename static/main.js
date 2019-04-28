@@ -489,9 +489,9 @@ function scrollTo(containerId) {
 }
 
 function scalix_server_logs(mainContainer) {
-    let $logElem = $(`<code></code>`);
+    let $logElem = $(`<pre></pre>`);
     mainContainer.append($logElem);
-    $logElem.wrap('<article></article>')
+    $logElem.wrap('<article style="height:500px;max-height:500px;overflow: auto;"></article>')
     $logElem.wrap('<div></div>')
 
     let evtSource = new EventSource('/scalix_server_logs', {withCredentials: true});
@@ -511,14 +511,18 @@ function scalix_server_logs(mainContainer) {
     evtSource.onerror = function(err) {
         $logElem.append(err + "<br/>");
     };
-    evtSource.onmessage = function(event) {
+    /*evtSource.onmessage = function(event) {
         console.log(arguments);
     };
     evtSource.onopen = function() {
         console.log(arguments);
-    };
+    };*/
+
     evtSource.addEventListener("ssxlog", function(event) {
-        $logElem.append(event.data + "<br/>");
+       $logElem[0].appendChild(document.createTextNode(event.data + "\n"));
+       delete event.data;
+       delete event;
+       return false;
     }, false);
     evtSource.addEventListener("close", function(event) {
         closeEvent();
