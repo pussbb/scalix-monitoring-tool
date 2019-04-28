@@ -15,7 +15,7 @@ class RecordNotFount(Exception):
     pass
 
 
-class BaseModel(object):
+class BaseModel:
 
     table = None
 
@@ -23,7 +23,7 @@ class BaseModel(object):
     _data = {}
     _hash = 0
 
-    def __init__(self, engine: 'aiopg._EngineContextManager', *args, **kwargs):
+    def __init__(self, engine: 'aiopg._EngineContextManager', **kwargs):
         self._engine = engine
         if 'id' not in kwargs:
             kwargs['id'] = str(uuid.uuid4())
@@ -65,10 +65,6 @@ class BaseModel(object):
 
     def __repr__(self):
         return '{}'.format(self._data)
-
-    @classmethod
-    def table(cls) -> 'sa.Table':
-        return cls.table
 
     @classmethod
     def columns(cls) -> 'sa.Table.columns':

@@ -62,7 +62,7 @@ class Process(BaseModel):
             ','.join([_COLUMN_AGG.format(field) for field in fields]),
             Process.time_range_str(time_filter)
         )
-        print(query)
+
         async with engine.acquire() as conn:
             async for item in conn.execute(text(query), name=proc_name):
                 for field in fields:

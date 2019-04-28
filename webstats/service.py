@@ -6,6 +6,7 @@ import logging
 import os
 import traceback
 import warnings
+from datetime import datetime
 from asyncio import CancelledError
 
 import aiohttp_jinja2
@@ -14,11 +15,11 @@ from aiohttp import web
 from aiohttp.helpers import DEBUG
 from aiopg import sa as aiopg_sa
 from alembic import command, config as alembic_conf
-from datetime import datetime
+
 
 from psutil import NoSuchProcess
 
-from webstats.config import Config, StatsConfig
+from webstats.config import StatsConfig
 from .routes import setup_routes
 from . import stats, CURRENT_DIR
 
@@ -34,7 +35,7 @@ APP = ServiceWebApplication()
 setup_routes(APP)
 
 ALEMBIC_CFG = alembic_conf.Config(CURRENT_DIR + '/../alembic.ini')
-_LOGER = logging.getLogger('aiohttp.server')
+_LOGGER = logging.getLogger('aiohttp.server')
 
 
 async def init_db(local_app):
@@ -85,22 +86,29 @@ async def init_task(local_app):
     :return:
     """
 
-    async def _worker(func, timeout):
+    async def _worker(func, timeout, *args):
         while True:
             print(datetime.now(), func.__name__)
             try:
-                await func(local_app)
+                await func(local_app, *args)
                 await asyncio.sleep(timeout)
             except CancelledError as _:
                 return
             except Exception as excp:
-                _LOGER.exception(excp)
+                _LOGGER.exception(excp)
                 print(excp)
                 traceback.print_exc()
 
     def __collect_workers(*args):
         for group in args:
             for name, timeout in group:
+                if name == 'processes':
+                    for item in local_app.stats_config.processes:
+                        async def __inner(*args):
+                            await stats.processes(*args)
+                        __inner.__name__ = 'process_' + item.name
+                        yield _worker(__inner, timeout, {item.name: item.stats})
+                    continue
                 func = getattr(stats, name, None)
                 if not callable(func):
                     warnings.warn('{} is not callable'.format(name))

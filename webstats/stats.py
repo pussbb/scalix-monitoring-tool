@@ -7,6 +7,7 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures.thread import ThreadPoolExecutor
+import atexit
 
 import psutil
 from psutil import CONN_CLOSE_WAIT
@@ -19,10 +20,19 @@ from .models.per_cpu import PerCpu
 from .models.cpu import Cpu
 
 
-__all__ = ('per_cpu', 'cpu', 'data_clean_up', 'memory', 'vacuum')
+__all__ = ('per_cpu', 'cpu', 'data_clean_up', 'memory', 'vacuum', 'processes',
+           'disk_io', 'tomcat', 'processes')
 
 _PROC_EXECUTOR = concurrent.futures.ProcessPoolExecutor(max_workers=10)
 _THREAD_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=50)
+
+
+def _close_pool():
+    _PROC_EXECUTOR.shutdown(False)
+    _THREAD_EXECUTOR.shutdown(False)
+
+
+atexit.register(_close_pool)
 
 
 def _run_blocking(*args):
@@ -111,10 +121,10 @@ def _tomcat():
         with proc.oneshot():
             io_counters = proc.io_counters()
             pdata['disks_read_per_sec'] = (
-                    io_counters.read_bytes - proc._before_disk_io.read_bytes
+                io_counters.read_bytes - proc._before_disk_io.read_bytes
             )
             pdata['disks_write_per_sec'] = (
-                    io_counters.write_bytes - proc._before_disk_io.write_bytes
+                io_counters.write_bytes - proc._before_disk_io.write_bytes
             )
 
             mem_info = proc.memory_full_info()
@@ -167,61 +177,71 @@ def _processes(proc_names):
         except psutil.NoSuchProcess as _:
             pass
 
-    def _grab_data(procs):
-        data = defaultdict(int)
-        data['zombie'] = 0
-        for proc, iob in procs:
-            data['procs'] += 1
-            try:
-                if proc.status() == psutil.STATUS_ZOMBIE:
-                    data['zombie'] += 1
-                    continue
-                with proc.oneshot():
-                    ioa = proc.io_counters()
-                    data['disks_read_per_sec'] += (
-                        ioa.read_bytes - iob.read_bytes
-                    )
-                    data['disks_write_per_sec'] += (
-                        ioa.write_bytes - iob.write_bytes
-                    )
-                    mem_info = proc.memory_full_info()
-                    data['memory_uss'] += mem_info.uss
-                    data['memory_swap'] += mem_info.swap
-                    data['cpu'] += proc.cpu_percent()
-                    data['fds'] += proc.num_fds()
-                    data['threads'] += proc.num_threads()
-                    connections = proc.connections()
-                    data['connections'] += len(connections)
-                    close_wait = 0
-                    for conn in connections:
-                        if conn.status == CONN_CLOSE_WAIT:
-                            close_wait += 1
-                    data['close_wait_conn'] = close_wait
-            except (psutil.NoSuchProcess, psutil.AccessDenied) as exp:
-                print(exp)
-        return data
-    res = []
+    def _grab_data(process, iob):
+        proc_data = defaultdict(int)
+        try:
+            if process.status() == psutil.STATUS_ZOMBIE:
+                proc_data['zombie'] += 1
+            with process.oneshot():
+                ioa = process.io_counters()
+                proc_data['disks_read_per_sec'] += (
+                    ioa.read_bytes - iob.read_bytes
+                )
+                proc_data['disks_write_per_sec'] += (
+                    ioa.write_bytes - iob.write_bytes
+                )
+                mem_info = process.memory_full_info()
+                proc_data['memory_uss'] += mem_info.uss
+                proc_data['memory_swap'] += mem_info.swap
+                proc_data['cpu'] += process.cpu_percent()
+                proc_data['fds'] += process.num_fds()
+                proc_data['threads'] += process.num_threads()
+                connections = process.connections()
+                proc_data['connections'] += len(connections)
+                close_wait = 0
+                for conn in connections:
+                    if conn.status == CONN_CLOSE_WAIT:
+                        close_wait += 1
+                proc_data['close_wait_conn'] = close_wait
+        except (psutil.NoSuchProcess, psutil.AccessDenied) as exp:
+            print(exp)
+        return proc_data
+
+    res = {}
     if not data:
         return res
+
     time.sleep(1)
+
     with ThreadPoolExecutor(max_workers=len(data)) as pool:
-        procs = {
-            pool.submit(_grab_data, val): name for name, val in data.items()
-        }
-        for future in concurrent.futures.as_completed(procs):
+        threads = {}
+        for name, procs in data.items():
+            for proc in procs:
+                ppid, piob = proc
+                threads[pool.submit(_grab_data, ppid, piob)] = name
+
+        for future in concurrent.futures.as_completed(threads):
             try:
-                name, data = procs[future], future.result()
+                name, data = threads[future], future.result()
             except Exception as exc:
                 print(exc)
             else:
-                res.append((name, data))
-    return res
+                item = res.get(name, {})
+                if not item:
+                    data['procs'] = 1
+                    res[name] = data
+                    continue
+                item['procs'] += 1
+                for key, val in data.items():
+                    item[key] = item.get(key, 0) + val
+    return [(name, val) for name, val in res.items()]
 
 
-async def processes(local_app: 'web.Application'):
-    procs = {
-        item.name: item.stats for item in local_app.stats_config.processes
-    }
+async def processes(local_app: 'web.Application', procs=None):
+    if not procs:
+        procs = {
+            item.name: item.stats for item in local_app.stats_config.processes
+        }
     for proc, data in await _run_blocking_p(_processes, procs):
         data['name'] = proc
         await Process.add(local_app.db_engine, **data)
