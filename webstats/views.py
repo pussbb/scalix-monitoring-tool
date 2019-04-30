@@ -263,7 +263,6 @@ async def scalix_tomcat_logs(request):
                             for key, val in summary.items()},
             }
 
-
     if 'json' not in request.headers.get('accept'):
         return aiohttp_jinja2.render_template('tomcat_logs.html', request,
                                               {'data': res})

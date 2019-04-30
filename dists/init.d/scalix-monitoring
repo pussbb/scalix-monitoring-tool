@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# chkconfig: 345 91 10
+#
+# description: \
+# This is the init script for starting up the Scalix Monitoring Web interface.
+#
+# (c) Copyright 2019 Scalix, Inc.
+#
+# This file does not need to be modified. It will read configuration variables
+# as set in /etc/opt/scalix-monitoring/
+#
+
+### BEGIN INIT INFO
+# Provides:          scalix-monitoring
+# Required-Start:    $network
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: scalix-monitoring
+# Description:       This is the init script for starting up the Scalix Monitoring Web interface.
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+PID_FILE='/run/scalix-monitoring-web.pid'
+
+case "$1" in
+    start)
+       start
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       stop
+       start
+       ;;
+    status)
+       # code to check status of app comes here
+       # example: status program_name
+       if [ ! -f "$PID_FILE" ]; then
+            echo "Service is not running"
+            exit 1
+       fi
+       if [ checkpid "$(cat $PID_FILE)" ]; then
+            echo "Service is not running"
+            exit 0
+       else
+            echo "Service is not running"
+            exit 1
+       fi
+       ;;
+    *)
+       echo "Usage: $0 {start|stop|status|restart}"
+esac
+
+exit 0

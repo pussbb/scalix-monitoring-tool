@@ -34,7 +34,11 @@ class ServiceWebApplication(web.Application):
 APP = ServiceWebApplication()
 setup_routes(APP)
 
-ALEMBIC_CFG = alembic_conf.Config(CURRENT_DIR + '/../alembic.ini')
+if os.path.exists('/etc/opt/scalix-monitoring/alembic.ini'):
+    ALEMBIC_CFG = alembic_conf.Config('/etc/opt/scalix-monitoring/alembic.ini')
+else:
+    ALEMBIC_CFG = alembic_conf.Config(CURRENT_DIR + '/../alembic.ini')
+
 _LOGGER = logging.getLogger('aiohttp.server')
 
 
