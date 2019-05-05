@@ -233,7 +233,7 @@ async def scalix_server_logs(request):
 
     await stream.write(b"event: ssxlog\n")
     await stream.write(b"data: Executing '%s'\n\n" % cmd)
-    res = await cmd.run(handler=_write)
+    res = await cmd.run(handler=_write, dev_null=True)
     await stream.write(b"event: ssxlog\n")
     await stream.write(b'data: Command exit code %i\n\n' % res.exit_code)
 

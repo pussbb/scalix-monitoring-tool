@@ -116,6 +116,7 @@ def _tomcat():
             continue
         proc._before_disk_io = proc.io_counters()
         proc._instance_name = instance_name[0]
+        proc.cpu_percent(None)
         java_procs.append(proc)
 
     if not java_procs:
@@ -175,6 +176,7 @@ def _processes(proc_names):
                     io_counts = 0
                     try:
                         io_counts = proc.io_counters()
+                        proc.cpu_percent(None)
                     except (psutil.AccessDenied, psutil.NoSuchProcess) as _:
                         pass
                     data[needed].append([proc, io_counts])
@@ -218,7 +220,7 @@ def _processes(proc_names):
     if not data:
         return res
 
-    time.sleep(1)
+    time.sleep(0.9)
 
     with ThreadPoolExecutor(max_workers=len(data)) as pool:
         threads = {}

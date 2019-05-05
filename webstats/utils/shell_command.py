@@ -298,26 +298,32 @@ class ShellCommand(object):
             close_fds=True
         )
 
-    async def run(self, handler=None):
+    async def run(self, handler=None, dev_null=False):
         """Executes command asynchronously.
 
         :param handler: callable
+        :param dev_null: bool
         :return: ShellCommand.Response object
         """
         proc = await self.get_process()
-
-        if not handler:
+        _handler = handler
+        if not _handler:
             def dummy(_): pass
-            handler = dummy
-        if not asyncio.iscoroutinefunction(handler):
-            async def _handler(*args):
-                handler(*args)
-            handler = _handler
+            _handler = dummy
+
+        if not asyncio.iscoroutinefunction(_handler):
+            sync_handler = _handler
+
+            async def __handler(*args):
+                sync_handler(*args)
+
+            _handler = __handler
         response = io.BytesIO()
         async for line in proc.stdout:
             line = _unify_newlines(line)
-            response.write(line)
-            await handler(line)
+            if not dev_null:
+                response.write(line)
+            await _handler(line)
 
         exit_code = await proc.wait()
         del proc
